@@ -20,17 +20,8 @@ import os
 from nacl.exceptions import BadSignatureError
 from nacl.signing import SigningKey
 
+from .helpers import iter_permutations
 from  .. import verify
-
-
-def iter_permutations(data):
-    for i in range(len(data)):
-        orig = data[i]
-        template = list(data)
-        for j in range(256):
-            if j != orig:
-                template[i] = j
-                yield bytes(template)
 
 
 class TestFunctions(TestCase):
@@ -52,13 +43,13 @@ class TestFunctions(TestCase):
         previous = os.urandom(64)
         public = bytes(sk.verify_key)
         msg = os.urandom(48)
-        signed = bytes(sk.sign(previous + public + msg))
+        signed = bytes(sk.sign(public + previous + msg))
         n = verify.verify_and_unpack(signed, public)
         self.assertIs(type(n), verify.Node)
         self.assertEqual(n.signature, signed[0:64])
-        self.assertEqual(n.previous_signature, previous)
-        self.assertEqual(n.public_key, public)
-        self.assertEqual(n.public_key, verify.get_public_key(signed))
+        self.assertEqual(n.previous, previous)
+        self.assertEqual(n.pubkey, public)
+        self.assertEqual(n.pubkey, verify.get_pubkey(signed))
         self.assertEqual(n.message, msg)
         for permutation in iter_permutations(signed):
             with self.assertRaises(BadSignatureError) as cm:
@@ -69,7 +60,7 @@ class TestFunctions(TestCase):
 
         # Embedded public key doesn't match:
         for bad in iter_permutations(public):
-            signed = bytes(sk.sign(previous + bad + msg))
+            signed = bytes(sk.sign(bad + previous + msg))
             verify.verify_signature(signed, public)
             with self.assertRaises(ValueError) as cm:
                 verify.verify_and_unpack(signed, public)

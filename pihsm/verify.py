@@ -19,29 +19,42 @@ from collections import namedtuple
 from nacl.signing import VerifyKey
 
 
-Node = namedtuple('Node', 'signature previous_signature public_key message')
+Node = namedtuple('Node', 'signature pubkey previous message')
 
 
-def get_public_key(signed_message):
-    return signed_message[128:160]
+def get_pubkey(signed_message):
+    return signed_message[64:96]
 
 
-def verify_signature(signed_message, public_key):
-    VerifyKey(public_key).verify(signed_message)
+def verify_signature(signed_message, pubkey):
+    VerifyKey(pubkey).verify(signed_message)
 
 
-def verify_and_unpack(signed_message, public_key):
-    verify_signature(signed_message, public_key)
+def repack(node):
+    signed = b''.join([
+        node.signature,
+        node.pubkey,
+        node.previous,
+        node.counter.to_bytes(8, 'little'),
+        node.timestamp.to_bytes(8, 'little'),
+        node.message,
+    ])
+    verify_signature(signed)
+    return signed
+
+
+def verify_and_unpack(signed_message, pubkey):
+    verify_signature(signed_message, pubkey)
     node = Node(
-        signed_message[0:64],     # signature
-        signed_message[64:128],   # previous_signature
-        signed_message[128:160],  # public_key
-        signed_message[160:],     # message
+        signed_message[0:64],    # signature
+        signed_message[64:96],   # pubkey
+        signed_message[96:160],  # previous
+        signed_message[160:],    # message
     )
-    if node.public_key != public_key:
+    if node.pubkey != pubkey:
         raise ValueError(
             'embebbed pubkey mismatch:\n  {}\n!=\n  {}'.format(
-                node.public_key.hex(), public_key.hex()
+                node.pubkey.hex(), pubkey.hex()
             )
         )
     return node

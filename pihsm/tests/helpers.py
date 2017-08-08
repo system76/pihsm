@@ -20,3 +20,14 @@ import os
 
 def random_u64():
     return int.from_bytes(os.urandom(8), 'little', signed=False)
+
+
+def iter_permutations(data):
+    for i in range(len(data)):
+        orig = data[i]
+        template = list(data)
+        for j in range(256):
+            if j != orig:
+                template[i] = j
+                yield bytes(template)
+
