@@ -19,7 +19,35 @@ import os
 
 import nacl.signing
 
+from .helpers import random_u64
 from  .. import sign
+
+
+class TestFunctions(TestCase):
+    def test_bulid_signing_form(self):
+        previous = os.urandom(64)
+        public = os.urandom(32)
+        msg = os.urandom(48)
+        self.assertEqual(
+            sign.build_signing_form(public, previous, 0, 0, msg),
+            public + previous + (b'\x00' * 16) + msg
+        )
+        self.assertEqual(
+            sign.build_signing_form(public, previous, 0, 0, b''),
+            public + previous + (b'\x00' * 16)
+        )
+        cnt = os.urandom(8)
+        ts = os.urandom(8)
+        counter = int.from_bytes(cnt, 'little')
+        timestamp = int.from_bytes(ts, 'little')
+        self.assertEqual(
+            sign.build_signing_form(public, previous, counter, timestamp, msg),
+            public + previous + cnt + ts + msg
+        )
+        self.assertEqual(
+            sign.build_signing_form(public, previous, counter, timestamp, b''),
+            public + previous + cnt + ts
+        )
 
 
 class TestSigner(TestCase):
@@ -28,22 +56,40 @@ class TestSigner(TestCase):
         self.assertIsInstance(s.key, nacl.signing.SigningKey)
         self.assertEqual(s.public, bytes(s.key.verify_key))
         self.assertEqual(s.previous, s.key.sign(s.public).signature)
+        self.assertEqual(s.counter, 0)
 
     def test_build_signing_form(self):
         s = sign.Signer()
+        ts = random_u64()
         msg = os.urandom(48)
-        self.assertEqual(s.build_signing_form(msg),
-            s.previous + s.public + msg
+        self.assertEqual(
+            s.build_signing_form(ts, msg),
+            sign.build_signing_form(s.public, s.previous, 0, ts, msg)
         )
 
     def test_sign(self):
         s = sign.Signer()
-        prev = s.previous
         pub = s.public
+
+        prev = s.previous
+        ts = random_u64()
         msg = os.urandom(48)
-        expected = bytes(s.key.sign(prev + pub + msg))
-        self.assertEqual(s.sign(msg), expected)
+        sf = sign.build_signing_form(pub, prev, 0, ts, msg)
+        expected = bytes(s.key.sign(sf))
+        self.assertEqual(s.sign(ts, msg), expected)
         self.assertNotEqual(s.previous, prev)
         self.assertEqual(s.previous, expected[:64])
+        self.assertEqual(s.counter, 1)
+        self.assertEqual(s.public, pub)
+
+        prev = s.previous
+        ts = random_u64()
+        msg = os.urandom(48)
+        sf = sign.build_signing_form(pub, prev, 1, ts, msg)
+        expected = bytes(s.key.sign(sf))
+        self.assertEqual(s.sign(ts, msg), expected)
+        self.assertNotEqual(s.previous, prev)
+        self.assertEqual(s.previous, expected[:64])
+        self.assertEqual(s.counter, 2)
         self.assertEqual(s.public, pub)
 

@@ -15,7 +15,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""
+Generic signed message format:
+
+    signature + public_key + message
+
+Generic chained signed message format:
+
+    signature + public_key [+ previous_signature + counter + timestamp] + message
+"""
+
+
 from nacl.signing import SigningKey
+
+
+def build_signing_form(public, previous, counter, timestamp, message):
+    assert type(public) is bytes and len(public) == 32
+    assert type(previous) is bytes and len(previous) == 64
+    assert type(counter) is int
+    assert type(timestamp) is int
+    assert type(message) is bytes
+    return b''.join([
+        public,
+        previous,
+        counter.to_bytes(8, 'little'),
+        timestamp.to_bytes(8, 'little'),
+        message,
+    ])
 
 
 class Signer:
@@ -23,16 +49,16 @@ class Signer:
         self.key = SigningKey.generate()
         self.public = bytes(self.key.verify_key)
         self.previous = self.key.sign(self.public).signature
+        self.counter = 0
 
-    def build_signing_form(self, message):
-        return b''.join([
-            self.previous,
-            self.public,
-            message,
-        ])
+    def build_signing_form(self, timestamp, message):
+        return build_signing_form(
+            self.public, self.previous, self.counter, timestamp, message
+        )
 
-    def sign(self, message):
-        sm = self.key.sign(self.build_signing_form(message))
+    def sign(self, timestamp, message):
+        sm = self.key.sign(self.build_signing_form(timestamp, message))
         self.previous = sm.signature
+        self.counter += 1
         return bytes(sm)
 
