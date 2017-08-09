@@ -26,6 +26,20 @@ from  .. import verify
 
 
 class TestFunctions(TestCase):
+    def test_verify_message(self):
+        sk = SigningKey.generate()
+        pubkey = bytes(sk.verify_key)
+        for length in [0, 1, 2]:
+            msg = os.urandom(length)
+            signed = bytes(sk.sign(pubkey + msg))
+            verify.verify_message(signed)
+            for bad in iter_permutations(signed):
+                with self.assertRaises(BadSignatureError) as cm:
+                    verify.verify_message(bad)
+                self.assertEqual(str(cm.exception),
+                    'Signature was forged or corrupt'
+                )
+
     def test_verify_signature(self):
         sk = SigningKey.generate()
         public = bytes(sk.verify_key)
@@ -86,4 +100,15 @@ class TestFunctions(TestCase):
                 )
             )
 
+    def test_verify_genesis(self):
+        s = Signer()
+        sig = s.previous
+        pub = s.public
+        self.assertIsNone(verify.verify_genesis(sig, pub))
+        for permutation in iter_permutations(sig):
+            with self.assertRaises(BadSignatureError) as cm:
+                verify.verify_genesis(permutation, pub)
+            self.assertEqual(str(cm.exception),
+                'Signature was forged or corrupt'
+            )
 

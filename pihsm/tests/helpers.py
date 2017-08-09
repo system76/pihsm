@@ -31,3 +31,16 @@ def iter_permutations(data):
                 template[i] = j
                 yield bytes(template)
 
+
+class MockStorage:
+    def __init__(self):
+        self._store = {}
+
+    def store(self, signed):
+        key = signed[0:64].hex()
+        assert key not in self._store
+        self._store[key] = signed
+
+    def load(self, sig):
+        return self._store[sig.hex()]
+

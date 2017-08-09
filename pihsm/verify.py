@@ -22,12 +22,19 @@ from nacl.signing import VerifyKey
 Node = namedtuple('Node', 'signature pubkey previous counter timestamp message')
 
 
-def get_pubkey(signed_message):
-    return signed_message[64:96]
+def get_pubkey(signed):
+    assert type(signed) is bytes and len(signed) >= 96
+    pubkey = signed[64:96]
+    assert len(pubkey) == 32
+    return pubkey
 
 
-def verify_signature(signed_message, pubkey):
-    VerifyKey(pubkey).verify(signed_message)
+def verify_message(signed):
+    VerifyKey(get_pubkey(signed)).verify(signed)
+
+
+def verify_signature(signed, pubkey):
+    VerifyKey(pubkey).verify(signed)
 
 
 def repack(node):
@@ -60,4 +67,29 @@ def verify_and_unpack(signed, pubkey):
             )
         )
     return node
+
+
+def verify_genesis(signature, pubkey):
+    verify_signature(signature + pubkey, pubkey)
+
+
+def verify_node(signed, pubkey, parent_counter=None):
+    node = verify_and_unpack(signed, pubkey)
+    if parent_counter is not None:
+        if node.counter != parent_counter - 1:
+            raise ValueError('expected node.counter {}, got {}'.format(
+                    node.counter, parent_counter - 1)
+            )
+
+
+def verify_chain(tail, pubkey, callback):
+    parent_counter = None
+    while tail is not None:
+        signed = callback(tail)
+        node = verify_node(signed, pubkey, parent_counter)
+        parent_counter = node.counter
+        tail = (node.previous if node.counter > 0 else None)
+
+
+
 
