@@ -18,11 +18,11 @@
 """
 Generic signed message format:
 
-    signature + public_key + message
+    signature + pubkey + message
 
 Generic chained signed message format:
 
-    signature + public_key [+ previous_signature + counter + timestamp] + message
+    signature + pubkey [+ previous + counter + timestamp] + message
 """
 
 

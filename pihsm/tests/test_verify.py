@@ -20,7 +20,8 @@ import os
 from nacl.exceptions import BadSignatureError
 from nacl.signing import SigningKey
 
-from .helpers import iter_permutations
+from .helpers import iter_permutations, random_u64
+from ..sign import Signer, build_signing_form
 from  .. import verify
 
 
@@ -38,18 +39,32 @@ class TestFunctions(TestCase):
                 'Signature was forged or corrupt'
             )
 
+    def test_repack(self):
+        s = Signer()
+        ts = random_u64()
+        msg = os.urandom(48)
+        signed = s.sign(ts, msg)
+        node = verify.verify_and_unpack(signed, s.public)
+        self.assertEqual(verify.repack(node), signed)
+
     def test_verify_and_unpack(self):
         sk = SigningKey.generate()
-        previous = os.urandom(64)
         public = bytes(sk.verify_key)
+        previous = os.urandom(64)
+        cnt = random_u64()
+        ts = random_u64()
         msg = os.urandom(48)
-        signed = bytes(sk.sign(public + previous + msg))
+        signing_form = build_signing_form(public, previous, cnt, ts, msg)
+        signed = bytes(sk.sign(signing_form))
+
         n = verify.verify_and_unpack(signed, public)
         self.assertIs(type(n), verify.Node)
         self.assertEqual(n.signature, signed[0:64])
         self.assertEqual(n.previous, previous)
         self.assertEqual(n.pubkey, public)
         self.assertEqual(n.pubkey, verify.get_pubkey(signed))
+        self.assertEqual(n.counter, cnt)
+        self.assertEqual(n.timestamp, ts)
         self.assertEqual(n.message, msg)
         for permutation in iter_permutations(signed):
             with self.assertRaises(BadSignatureError) as cm:
@@ -60,7 +75,8 @@ class TestFunctions(TestCase):
 
         # Embedded public key doesn't match:
         for bad in iter_permutations(public):
-            signed = bytes(sk.sign(bad + previous + msg))
+            signing_form = build_signing_form(bad, previous, cnt, ts, msg)
+            signed = bytes(sk.sign(signing_form))
             verify.verify_signature(signed, public)
             with self.assertRaises(ValueError) as cm:
                 verify.verify_and_unpack(signed, public)
@@ -69,4 +85,5 @@ class TestFunctions(TestCase):
                     bad.hex(), public.hex()
                 )
             )
+
 

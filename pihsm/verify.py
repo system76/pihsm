@@ -19,7 +19,7 @@ from collections import namedtuple
 from nacl.signing import VerifyKey
 
 
-Node = namedtuple('Node', 'signature pubkey previous message')
+Node = namedtuple('Node', 'signature pubkey previous counter timestamp message')
 
 
 def get_pubkey(signed_message):
@@ -39,17 +39,19 @@ def repack(node):
         node.timestamp.to_bytes(8, 'little'),
         node.message,
     ])
-    verify_signature(signed)
+    verify_signature(signed, node.pubkey)
     return signed
 
 
-def verify_and_unpack(signed_message, pubkey):
-    verify_signature(signed_message, pubkey)
+def verify_and_unpack(signed, pubkey):
+    verify_signature(signed, pubkey)
     node = Node(
-        signed_message[0:64],    # signature
-        signed_message[64:96],   # pubkey
-        signed_message[96:160],  # previous
-        signed_message[160:],    # message
+        signed[0:64],    # signature
+        signed[64:96],   # pubkey
+        signed[96:160],  # previous
+        int.from_bytes(signed[160:168], 'little'),
+        int.from_bytes(signed[168:176], 'little'),
+        signed[176:],    # message
     )
     if node.pubkey != pubkey:
         raise ValueError(
@@ -58,3 +60,4 @@ def verify_and_unpack(signed_message, pubkey):
             )
         )
     return node
+
