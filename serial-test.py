@@ -17,6 +17,7 @@
 import serial
 import os
 import time
+import hashlib
 
 from pihsm.sign import Signer
 from pihsm.verify import isvalid
@@ -27,6 +28,7 @@ OVERHEAD = 176
 REQUEST = OVERHEAD + MESSAGE
 RESPONSE = OVERHEAD + REQUEST
 
+
 def open_serial(port):
     return serial.Serial(port,
         baudrate=115200,
@@ -35,27 +37,34 @@ def open_serial(port):
     )
 
 
+def get_digest(msg):
+    return hashlib.md5(msg).hexdigest()
+
+
 def run_client_once(s, ttl, i):
     ts = int(time.time())
     request = s.sign(ts, os.urandom(MESSAGE))
+    digest = get_digest(request)
     r = 0
     while True:
-        print(s.public.hex(), i, r)
         ttl.write(request)
-        response = ttl.read(RESPONSE * 2)
+        response = ttl.read(RESPONSE)
         if len(response) == RESPONSE and isvalid(response):
+            print(digest, get_digest(response), i, r)
             return response
+        print(digest, i, r)
         r += 1
 
 
 def run_server_once(s, ttl, i):
     r = 0
     while True:
-        msg = ttl.read(REQUEST * 2)
-        if len(msg) == REQUEST and isvalid(msg):
-            print(s.public.hex(), i, r)
-            return ttl.write(s.sign(int(time.time()), msg))
-        print(len(msg), i, r)
+        request = ttl.read(REQUEST)
+        if len(request) == REQUEST and isvalid(request):
+            response = s.sign(int(time.time()), request)
+            print(get_digest(request), get_digest(response), i, r)
+            return ttl.write(response)
+        print(len(request), i, r)
         r += 1
 
 
@@ -77,4 +86,4 @@ def run_server():
         i += 1
 
 
-run_server()
+run_client()
