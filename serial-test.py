@@ -22,7 +22,7 @@ import hashlib
 from pihsm.sign import Signer
 from pihsm.verify import isvalid
 
-
+TIMEOUT = 2
 MESSAGE = 48
 OVERHEAD = 176
 REQUEST = OVERHEAD + MESSAGE
@@ -32,7 +32,7 @@ RESPONSE = OVERHEAD + REQUEST
 def open_serial(port):
     return serial.Serial(port,
         baudrate=115200,
-        timeout=2,
+        timeout=TIMEOUT,
         #parity=serial.PARITY_EVEN,
     )
 
@@ -54,6 +54,7 @@ def run_client_once(s, ttl, i):
             return response
         print(digest, i, r)
         r += 1
+        time.sleep(TIMEOUT * 2)
 
 
 def run_server_once(s, ttl, i):
