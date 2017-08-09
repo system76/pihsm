@@ -17,6 +17,7 @@
 from collections import namedtuple
 
 from nacl.signing import VerifyKey
+from nacl.exceptions import BadSignatureError
 
 
 Node = namedtuple('Node', 'signature pubkey previous counter timestamp message')
@@ -31,6 +32,15 @@ def get_pubkey(signed):
 
 def verify_message(signed):
     VerifyKey(get_pubkey(signed)).verify(signed)
+
+
+
+def isvalid(signed):
+    try:
+        verify_message(signed)
+        return True
+    except BadSignatureError:
+        return False
 
 
 def verify_signature(signed, pubkey):
