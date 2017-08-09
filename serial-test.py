@@ -22,7 +22,7 @@ import hashlib
 from pihsm.sign import Signer
 from pihsm.verify import isvalid
 
-TIMEOUT = 2
+TIMEOUT = 5
 MESSAGE = 48
 OVERHEAD = 176
 REQUEST = OVERHEAD + MESSAGE
@@ -54,7 +54,7 @@ def run_client_once(s, ttl, i):
             return response
         print(digest, i, r)
         r += 1
-        time.sleep(TIMEOUT * 2)
+        time.sleep(TIMEOUT / 2)
 
 
 def run_server_once(s, ttl, i):
@@ -87,4 +87,4 @@ def run_server():
         i += 1
 
 
-run_client()
+run_server()
