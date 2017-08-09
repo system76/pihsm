@@ -42,7 +42,7 @@ def run_client_once(s, ttl, i):
     while True:
         print(s.public.hex(), i, r)
         ttl.write(request)
-        response = ttl.read(RESPONSE)
+        response = ttl.read(RESPONSE * 2)
         if len(response) == RESPONSE and isvalid(response):
             return response
         r += 1
@@ -51,9 +51,10 @@ def run_client_once(s, ttl, i):
 def run_server_once(s, ttl, i):
     r = 0
     while True:
-        msg = ttl.read(REQUEST)
+        msg = ttl.read(REQUEST * 2)
         if len(msg) == REQUEST and isvalid(msg):
-            return ttl.write(s.sign(msg))  
+            print(s.public.hex(), i, r)
+            return ttl.write(s.sign(int(time.time()), msg))
         print(len(msg), i, r)
         r += 1
 
