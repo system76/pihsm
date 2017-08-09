@@ -51,7 +51,7 @@ def run_client_once(s, ttl, i):
 def run_server_once(s, ttl, i):
     r = 0
     while True:
-        msg = s.read(REQUEST)
+        msg = ttl.read(REQUEST)
         if len(msg) == REQUEST and isvalid(msg):
             return ttl.write(s.sign(msg))  
         print(len(msg), i, r)
@@ -76,4 +76,4 @@ def run_server():
         i += 1
 
 
-run_client()
+run_server()
