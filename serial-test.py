@@ -54,7 +54,7 @@ def run_client_once(s, ttl, i):
             return response
         print(digest, i, r)
         r += 1
-        time.sleep(TIMEOUT / 2)
+        time.sleep(TIMEOUT * 1.5)
 
 
 def run_server_once(s, ttl, i):
@@ -79,7 +79,17 @@ def run_client():
 
 
 def run_server():
+    import smbus
+    from pihsm.display import LCD, pub_to_lines
+
+    bus = smbus.SMBus(1)
+    lcd = LCD(bus)
+    lcd.lcd_init()
+
     s = Signer()
+    lines = pub_to_lines('Public Key:'.center(20), s.public)
+    lcd.lcd_text_lines(*lines)
+
     ttl = open_serial('/dev/ttyAMA0')
     i = 0
     while True:
@@ -88,3 +98,4 @@ def run_server():
 
 
 run_server()
+
