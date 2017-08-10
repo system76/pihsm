@@ -40,25 +40,12 @@ class TestFunctions(TestCase):
                     'Signature was forged or corrupt'
                 )
 
-    def test_verify_signature(self):
-        sk = SigningKey.generate()
-        public = bytes(sk.verify_key)
-        msg = os.urandom(48)
-        signed = bytes(sk.sign(msg))
-        self.assertIsNone(verify.verify_signature(signed, public))
-        for permutation in iter_permutations(signed):
-            with self.assertRaises(BadSignatureError) as cm:
-                verify.verify_signature(permutation, public)
-            self.assertEqual(str(cm.exception),
-                'Signature was forged or corrupt'
-            )
-
     def test_repack(self):
         s = Signer()
         ts = random_u64()
         msg = os.urandom(48)
         signed = s.sign(ts, msg)
-        node = verify.verify_and_unpack(signed, s.public)
+        node = verify.verify_and_unpack(signed)
         self.assertEqual(verify.repack(node), signed)
 
     def test_verify_and_unpack(self):
@@ -71,7 +58,7 @@ class TestFunctions(TestCase):
         signing_form = build_signing_form(public, previous, cnt, ts, msg)
         signed = bytes(sk.sign(signing_form))
 
-        n = verify.verify_and_unpack(signed, public)
+        n = verify.verify_and_unpack(signed)
         self.assertIs(type(n), verify.Node)
         self.assertEqual(n.signature, signed[0:64])
         self.assertEqual(n.previous, previous)
@@ -82,22 +69,9 @@ class TestFunctions(TestCase):
         self.assertEqual(n.message, msg)
         for permutation in iter_permutations(signed):
             with self.assertRaises(BadSignatureError) as cm:
-                verify.verify_and_unpack(permutation, public)
+                verify.verify_and_unpack(permutation)
             self.assertEqual(str(cm.exception),
                 'Signature was forged or corrupt'
-            )
-
-        # Embedded public key doesn't match:
-        for bad in iter_permutations(public):
-            signing_form = build_signing_form(bad, previous, cnt, ts, msg)
-            signed = bytes(sk.sign(signing_form))
-            verify.verify_signature(signed, public)
-            with self.assertRaises(ValueError) as cm:
-                verify.verify_and_unpack(signed, public)
-            self.assertEqual(str(cm.exception),
-                'embebbed pubkey mismatch:\n  {}\n!=\n  {}'.format(
-                    bad.hex(), public.hex()
-                )
             )
 
     def test_verify_genesis(self):

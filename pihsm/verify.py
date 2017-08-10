@@ -43,10 +43,6 @@ def isvalid(signed):
         return False
 
 
-def verify_signature(signed, pubkey):
-    VerifyKey(pubkey).verify(signed)
-
-
 def repack(node):
     signed = b''.join([
         node.signature,
@@ -56,13 +52,13 @@ def repack(node):
         node.timestamp.to_bytes(8, 'little'),
         node.message,
     ])
-    verify_signature(signed, node.pubkey)
+    verify_message(signed)
     return signed
 
 
-def verify_and_unpack(signed, pubkey):
-    verify_signature(signed, pubkey)
-    node = Node(
+def verify_and_unpack(signed):
+    verify_message(signed)
+    return Node(
         signed[0:64],    # signature
         signed[64:96],   # pubkey
         signed[96:160],  # previous
@@ -70,17 +66,10 @@ def verify_and_unpack(signed, pubkey):
         int.from_bytes(signed[168:176], 'little'),
         signed[176:],    # message
     )
-    if node.pubkey != pubkey:
-        raise ValueError(
-            'embebbed pubkey mismatch:\n  {}\n!=\n  {}'.format(
-                node.pubkey.hex(), pubkey.hex()
-            )
-        )
-    return node
 
 
 def verify_genesis(signature, pubkey):
-    verify_signature(signature + pubkey, pubkey)
+    verify_message(signature + pubkey)
 
 
 def verify_node(signed, pubkey, parent_counter=None):
