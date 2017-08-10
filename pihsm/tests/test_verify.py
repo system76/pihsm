@@ -26,6 +26,13 @@ from  .. import verify
 
 
 class TestFunctions(TestCase):
+    def test_get_pubkey(self):
+        sig = os.urandom(64)
+        pub = os.urandom(32)
+        msg = os.urandom(48)
+        self.assertEqual(verify.get_pubkey(sig + pub), pub)
+        self.assertEqual(verify.get_pubkey(sig + pub + msg), pub)
+
     def test_verify_message(self):
         sk = SigningKey.generate()
         pubkey = bytes(sk.verify_key)
@@ -39,6 +46,16 @@ class TestFunctions(TestCase):
                 self.assertEqual(str(cm.exception),
                     'Signature was forged or corrupt'
                 )
+
+    def test_isvalid(self):
+        sk = SigningKey.generate()
+        pubkey = bytes(sk.verify_key)
+        for length in [0, 1, 2]:
+            msg = os.urandom(length)
+            signed = bytes(sk.sign(pubkey + msg))
+            self.assertIs(verify.isvalid(signed), True)
+            for bad in iter_permutations(signed):
+                self.assertIs(verify.isvalid(bad), False)
 
     def test_repack(self):
         s = Signer()
@@ -82,6 +99,12 @@ class TestFunctions(TestCase):
         for permutation in iter_permutations(sig):
             with self.assertRaises(BadSignatureError) as cm:
                 verify.verify_genesis(permutation, pub)
+            self.assertEqual(str(cm.exception),
+                'Signature was forged or corrupt'
+            )
+        for permutation in iter_permutations(pub):
+            with self.assertRaises(BadSignatureError) as cm:
+                verify.verify_genesis(sig, permutation)
             self.assertEqual(str(cm.exception),
                 'Signature was forged or corrupt'
             )

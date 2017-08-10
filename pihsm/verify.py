@@ -34,7 +34,6 @@ def verify_message(signed):
     VerifyKey(get_pubkey(signed)).verify(signed)
 
 
-
 def isvalid(signed):
     try:
         verify_message(signed)
@@ -59,12 +58,12 @@ def repack(node):
 def verify_and_unpack(signed):
     verify_message(signed)
     return Node(
-        signed[0:64],    # signature
-        signed[64:96],   # pubkey
-        signed[96:160],  # previous
-        int.from_bytes(signed[160:168], 'little'),
-        int.from_bytes(signed[168:176], 'little'),
-        signed[176:],    # message
+        signed[0:64],                               # signature
+        get_pubkey(signed),                         # pubkey
+        signed[96:160],                             # previous
+        int.from_bytes(signed[160:168], 'little'),  # counter
+        int.from_bytes(signed[168:176], 'little'),  # timestamp
+        signed[176:],                               # message
     )
 
 
@@ -73,12 +72,19 @@ def verify_genesis(signature, pubkey):
 
 
 def verify_node(signed, pubkey, parent_counter=None):
-    node = verify_and_unpack(signed, pubkey)
+    node = verify_and_unpack(signed)
+    if node.pubkey != pubkey:
+        raise ValueError(
+            'embebbed pubkey mismatch:\n  {}\n!=\n  {}'.format(
+                node.pubkey.hex(), pubkey.hex()
+            )
+        )
     if parent_counter is not None:
         if node.counter != parent_counter - 1:
             raise ValueError('expected node.counter {}, got {}'.format(
                     node.counter, parent_counter - 1)
             )
+    return node
 
 
 def verify_chain(tail, pubkey, callback):
@@ -90,5 +96,12 @@ def verify_chain(tail, pubkey, callback):
         tail = (node.previous if node.counter > 0 else None)
 
 
-
+def verify_chain(tail, pubkey, callback):
+    counter = None
+    while True:
+        signed = callback(tail)
+        if len(signed) == 96:
+            pass
+        else:
+            pass   
 
