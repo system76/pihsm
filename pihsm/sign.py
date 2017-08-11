@@ -25,8 +25,12 @@ Generic chained signed message format:
     signature + pubkey [+ previous + counter + timestamp] + message
 """
 
+import logging
 
 from nacl.signing import SigningKey
+
+
+log = logging.getLogger(__name__)
 
 
 def build_signing_form(public, previous, counter, timestamp, message):
@@ -50,6 +54,8 @@ class Signer:
         self.public = bytes(self.key.verify_key)
         self.previous = self.key.sign(self.public).signature
         self.counter = 0
+        log.info('Public Key: %s', self.public.hex())
+        log.info('Genesis Node: %s', self.previous.hex())
 
     def build_signing_form(self, timestamp, message):
         return build_signing_form(
@@ -60,5 +66,6 @@ class Signer:
         self.counter += 1
         sm = self.key.sign(self.build_signing_form(timestamp, message))
         self.previous = sm.signature
+        log.debug('tail: %s, counter: %s', sm.signature.hex(), self.counter)
         return bytes(sm)
 

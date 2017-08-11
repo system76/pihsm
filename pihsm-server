@@ -22,8 +22,12 @@ import os
 import time
 import hashlib
 
+import pihsm
 from pihsm.sign import Signer
-from pihsm.verify import isvalid, verify_and_unpack
+from pihsm.verify import isvalid, verify_and_unpack, get_pubkey
+
+
+log = pihsm.configure_logging(__name__)
 
 TIMEOUT = 5
 MESSAGE = 48
@@ -40,8 +44,20 @@ def open_serial(port):
     )
 
 
+def read_serial(ttl, size):
+    msg = ttl.read(size)
+    if len(msg) != size:
+        log.info('serial read: expected %d bytes; got %d', size, len(msg))
+        return None
+    if isvalid(msg):
+        return msg
+    log.info('bad signature from pubkey %s', get_pubkey(msg).hex())
+    return None
+
+
 def get_digest(msg):
     return hashlib.md5(msg).hexdigest()
+
 
 
 def run_client_once(s, ttl, i):
@@ -51,27 +67,30 @@ def run_client_once(s, ttl, i):
     r = 0
     while True:
         ttl.write(request)
-        response = ttl.read(RESPONSE)
-        if len(response) == RESPONSE and isvalid(response):
-            print(digest, get_digest(response), i, r)
+        response = read_serial(ttl, RESPONSE)
+        if response is None:
+            log.info('%s, %d, %d', digest, i, r)
+            r += 1
+            time.sleep(TIMEOUT * 1.5)
+        else:
+            log.info('%s -> %s, %d, %d', digest, get_digest(response), i, r)
             return response
-        print(digest, i, r)
-        r += 1
-        time.sleep(TIMEOUT * 1.5)
+        
 
 
 def run_server_once(s, ttl, i, lcd):
     r = 0
     while True:
-        request = ttl.read(REQUEST)
-        if len(request) == REQUEST and isvalid(request):
+        request = read_serial(ttl, REQUEST)
+        if request is None:
+            log.info('%d, %d', i, r)
+            r += 1
+        else:
             response = s.sign(int(time.time()), request)
-            print(get_digest(request), get_digest(response), i, r)
+            log.info('%s -> %s, %d, %d', get_digest(request), get_digest(response), i, r)
             n = verify_and_unpack(response)
             lcd.status_to_lines(n.timestamp, n.counter)
             return ttl.write(response)
-        print(len(request), i, r)
-        r += 1
 
 
 def run_client():

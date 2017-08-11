@@ -16,3 +16,14 @@
 
 
 __version__ = '0.0.1'
+
+
+def configure_logging(name):
+    import logging
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(levelname)s: %(message)s',
+    )
+    return logging.getLogger(name)
+
