@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import argparse
 import serial
 import os
 import time
 import hashlib
 
 from pihsm.sign import Signer
-from pihsm.verify import isvalid
+from pihsm.verify import isvalid, verify_and_unpack
 
 TIMEOUT = 5
 MESSAGE = 48
@@ -57,14 +58,16 @@ def run_client_once(s, ttl, i):
         time.sleep(TIMEOUT * 1.5)
 
 
-def run_server_once(s, ttl, i):
+def run_server_once(s, ttl, i, lcd):
     r = 0
     while True:
         request = ttl.read(REQUEST)
         if len(request) == REQUEST and isvalid(request):
             response = s.sign(int(time.time()), request)
             print(get_digest(request), get_digest(response), i, r)
-            return ttl.write(response)
+            n = verify_and_unpack(response)
+            lcd.status_to_lines(n.timestamp, n.counter)
+            ttl.write(response)
         print(len(request), i, r)
         r += 1
 
@@ -76,6 +79,7 @@ def run_client():
     while True:
         run_client_once(s, ttl, i)
         i += 1
+        time.sleep(0.3)
 
 
 def run_server():
@@ -93,9 +97,18 @@ def run_server():
     ttl = open_serial('/dev/ttyAMA0')
     i = 0
     while True:
-        run_server_once(s, ttl, i)
+        run_server_once(s, ttl, i, lcd)
         i += 1
 
 
-run_server()
+parser = argparse.ArgumentParser()
+parser.add_argument('--client', action='store_true', default=False,
+    help='Run client (instead of server)'
+)
+args = parser.parse_args()
+
+if args.client:
+    run_client()
+else:
+    run_server()
 

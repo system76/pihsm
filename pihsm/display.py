@@ -105,6 +105,10 @@ class LCD:
         for lines in screens:
             self.lcd_text_lines(*lines)
             time.sleep(delay)
+  
+    def status_to_lines(self, ts, cnt):
+        lines = status_to_lines(ts, cnt)
+        self.lcd_text_lines(*lines)
 
 
 def pub_to_lines(label, pub):
@@ -119,7 +123,7 @@ def pub_to_lines(label, pub):
 
 def status_to_lines(ts, cnt):
     return (
-        'Current Unix Time:'.ljust(20),
+        'Unix Time:'.ljust(20),
         str(ts).rjust(20),
         'Block Counter:'.ljust(20),
         str(cnt).rjust(20),

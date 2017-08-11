@@ -109,3 +109,43 @@ class TestFunctions(TestCase):
                 'Signature was forged or corrupt'
             )
 
+    def test_verify_node(self):
+        sk = SigningKey.generate()
+        public = bytes(sk.verify_key)
+        previous = os.urandom(64)
+        cnt = random_u64()
+        ts = random_u64()
+        msg = os.urandom(48)
+        signing_form = build_signing_form(public, previous, cnt, ts, msg)
+        signed = bytes(sk.sign(signing_form))
+
+        n = verify.verify_node(signed, public)
+        self.assertIs(type(n), verify.Node)
+        self.assertEqual(n.signature, signed[0:64])
+        self.assertEqual(n.previous, previous)
+        self.assertEqual(n.pubkey, public)
+        self.assertEqual(n.pubkey, verify.get_pubkey(signed))
+        self.assertEqual(n.counter, cnt)
+        self.assertEqual(n.timestamp, ts)
+        self.assertEqual(n.message, msg)
+        self.assertEqual(verify.verify_node(signed, public, cnt + 1), n)
+
+        # Embedded Public Key doesn't match:
+        for bad in iter_permutations(public):
+            with self.assertRaises(ValueError) as cm:
+                verify.verify_node(signed, bad)
+            self.assertEqual(str(cm.exception),
+                'embebbed pubkey mismatch:\n  {}\n!=\n  {}'.format(
+                    public.hex(), bad.hex()
+                )
+            )
+
+        # Counter is too low or too high:
+        for offset in [-1, 0, 2]:
+            parent_cnt = cnt + offset
+            with self.assertRaises(ValueError) as cm:
+                verify.verify_node(signed, public, parent_cnt)
+            self.assertEqual(str(cm.exception),
+                'expected node.counter {}; got {}'.format(cnt, parent_cnt - 1)
+            )
+
