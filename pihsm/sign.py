@@ -57,8 +57,8 @@ class Signer:
         )
 
     def sign(self, timestamp, message):
+        self.counter += 1
         sm = self.key.sign(self.build_signing_form(timestamp, message))
         self.previous = sm.signature
-        self.counter += 1
         return bytes(sm)
 

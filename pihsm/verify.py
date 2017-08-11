@@ -45,10 +45,10 @@ def isvalid(signed):
 def check_node(node):
     assert isinstance(node, Node)
     assert isinstance(node.counter, int)
-#    if node.counter < 1:
-#        raise ValueError(
-#            'Invalid node.counter, possible overflow: {!r}'.format(node.counter)
-#        )
+    if node.counter < 1:
+        raise ValueError(
+            'Invalid node.counter, possible overflow: {!r}'.format(node.counter)
+        )
 
 
 def repack(node):

@@ -79,7 +79,7 @@ def run_client():
     while True:
         run_client_once(s, ttl, i)
         i += 1
-        time.sleep(2.3)
+        time.sleep(0.7)
 
 
 def run_server():

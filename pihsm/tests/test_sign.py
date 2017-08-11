@@ -74,7 +74,7 @@ class TestSigner(TestCase):
         prev = s.previous
         ts = random_u64()
         msg = os.urandom(48)
-        sf = sign.build_signing_form(pub, prev, 0, ts, msg)
+        sf = sign.build_signing_form(pub, prev, 1, ts, msg)
         expected = bytes(s.key.sign(sf))
         self.assertEqual(s.sign(ts, msg), expected)
         self.assertNotEqual(s.previous, prev)
@@ -85,7 +85,7 @@ class TestSigner(TestCase):
         prev = s.previous
         ts = random_u64()
         msg = os.urandom(48)
-        sf = sign.build_signing_form(pub, prev, 1, ts, msg)
+        sf = sign.build_signing_form(pub, prev, 2, ts, msg)
         expected = bytes(s.key.sign(sf))
         self.assertEqual(s.sign(ts, msg), expected)
         self.assertNotEqual(s.previous, prev)

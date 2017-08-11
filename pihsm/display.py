@@ -96,7 +96,7 @@ class LCD:
             self.lcd_byte(bits, LCD_CHR)
 
     def lcd_text_lines(self, *lines):
-        self.lcd_clear()
+        #self.lcd_clear()
         for (i, text) in enumerate(lines):
             data = text.ljust(self.cols).encode()[:self.cols]
             self.lcd_line(data, i)
