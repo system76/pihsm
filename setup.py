@@ -61,5 +61,8 @@ setup(
         'pihsm',
         'pihsm.tests'
     ],
+    scripts=[
+        'pihsm-server',
+    ],
 )
 

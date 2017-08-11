@@ -1,0 +1,22 @@
+#!/bin/sh -e
+
+case $1 in
+    configure)
+        if ! getent passwd pihsm-server > /dev/null; then
+            adduser --system --quiet \
+                --home /var/lib/pihsm-server --no-create-home \
+                --shell /bin/bash --group --gecos "pihsm-server" pihsm-server
+        fi
+        if test "`id -u pihsm-server`" -eq 0; then
+            echo "The pihsm-server administrative user must not be root." >&2
+            false
+        fi
+        if test "`id -g pihsm-server`" -eq 0; then
+            echo "The pihsm-server administrative group must not be root." >&2
+            false
+        fi
+        adduser pihsm-server i2c
+        adduser pihsm-server dialout
+esac
+
+#DEBHELPER#
