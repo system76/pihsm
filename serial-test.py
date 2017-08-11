@@ -67,7 +67,7 @@ def run_server_once(s, ttl, i, lcd):
             print(get_digest(request), get_digest(response), i, r)
             n = verify_and_unpack(response)
             lcd.status_to_lines(n.timestamp, n.counter)
-            ttl.write(response)
+            return ttl.write(response)
         print(len(request), i, r)
         r += 1
 
@@ -79,7 +79,7 @@ def run_client():
     while True:
         run_client_once(s, ttl, i)
         i += 1
-        time.sleep(0.3)
+        time.sleep(2.3)
 
 
 def run_server():
