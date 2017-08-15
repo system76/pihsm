@@ -26,11 +26,16 @@ Generic chained signed message format:
 """
 
 import logging
+import time
 
 from nacl.signing import SigningKey
 
 
 log = logging.getLogger(__name__)
+
+
+def get_time():
+    return int(time.time())
 
 
 def get_entropy_avail(filename='/proc/sys/kernel/random/entropy_avail'):
@@ -58,7 +63,8 @@ class Signer:
     def __init__(self):
         self.key = SigningKey.generate()
         self.public = bytes(self.key.verify_key)
-        self.previous = self.key.sign(self.public).signature
+        self.genesis = bytes(self.key.sign(self.public))
+        self.previous = self.genesis[0:64]
         self.counter = 0
         log.info('Public Key: %s', self.public.hex())
         log.info('Genesis Node: %s', self.previous.hex())

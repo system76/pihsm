@@ -38,7 +38,12 @@
 #
 
 import time
-import base64
+import threading
+from base64 import b32encode
+
+from .verify import get_signature, get_pubkey, get_counter
+from .sign import get_entropy_avail
+
 
 LCD_LINES = (0x80, 0xC0, 0x94, 0xD4)
 ENABLE = 0b00000100
@@ -98,34 +103,141 @@ class LCD:
     def lcd_text_lines(self, *lines):
         #self.lcd_clear()
         for (i, text) in enumerate(lines):
-            data = text.ljust(self.cols).encode()[:self.cols]
-            self.lcd_line(data, i)
+            if callable(text):
+                text = text()
+            self.lcd_line(text.encode(), i)
 
-    def lcd_screens(self, *screens, delay=3):
+    def lcd_screens(self, *screens):
+        delay = (1 if len(screens) < 2 else 3)
         for lines in screens:
             self.lcd_text_lines(*lines)
             time.sleep(delay)
-  
-    def status_to_lines(self, ts, cnt):
-        lines = status_to_lines(ts, cnt)
-        self.lcd_text_lines(*lines)
 
 
-def pub_to_lines(label, pub):
-    p = base64.b32encode(pub).decode()
-    return (
-        label.center(20),
-        p[0:20],
-        p[20:40],
-        p[40:56],
-    )
+def _mk_u64_line(u64):
+    assert type(u64) is int and u64 >= 0
+    line = str(u64).rjust(20)
+    assert len(line) == 20
+    return line
 
 
-def status_to_lines(ts, cnt):
+def _mk_time_line():
+    return _mk_u64_line(int(time.time()))
+
+
+def _mk_entropy_line():
+    return _mk_u64_line(get_entropy_avail())
+
+
+def _mk_status_lines():
     return (
         'Unix Time:'.ljust(20),
-        str(ts).rjust(20),
-        'Block Counter:'.ljust(20),
-        str(cnt).rjust(20),
+        _mk_time_line,
+        'Entropy Available:'.ljust(20),
+        _mk_entropy_line,
     )
 
+
+def _mk_time_and_counter_lines(counter):
+    return (
+        'Unix Time:'.ljust(20),
+        _mk_time_line,
+        'Counter:'.ljust(20),
+        _mk_u64_line(counter),
+    )
+
+
+def _mk_pubkey_lines(pubkey):
+    assert type(pubkey) is bytes and len(pubkey) == 32
+    p = b32encode(pubkey).decode()
+    return (
+        'Public Key:'.center(20),
+        p[0:20],
+        p[20:40],
+        p[40:56].ljust(20),
+    )
+
+
+def _mk_signature_lines(sig, i, template):
+    assert type(sig) is bytes and len(sig) == 64
+    assert type(i) is int and i in (0, 1)
+    start = i * 32
+    stop = start + 32
+    half = sig[start:stop]
+    s = b32encode(half).decode()
+    return (
+        template.format(i + 1).center(20),
+        s[0:20],
+        s[20:40],
+        s[40:56].ljust(20),
+    )
+
+
+def _mk_signature_screens(sig, template='Signature ({:d}):'):
+    assert type(sig) is bytes and len(sig) == 64
+    return tuple(_mk_signature_lines(sig, i, template) for i in [0, 1])
+
+
+def _mk_genesis_screens(sig):
+    return _mk_signature_screens(sig, template='Genesis ({:d}):')
+
+
+def _mk_screens_0():
+    return (
+        _mk_status_lines(),
+    )
+
+
+def _mk_screens_96(tail):
+    assert type(tail) is bytes and len(tail) == 96
+    return (
+        _mk_status_lines(),
+        _mk_pubkey_lines(get_pubkey(tail)),
+    ) + _mk_genesis_screens(get_signature(tail))
+
+
+def _mk_screens_400(tail):
+    assert type(tail) is bytes and len(tail) == 400
+    return (
+        _mk_time_and_counter_lines(get_counter(tail)),
+        _mk_pubkey_lines(get_pubkey(tail)),
+    ) + _mk_signature_screens(get_signature(tail))
+
+
+
+def tail_to_screens(tail):
+    assert type(tail) is bytes
+    if len(tail) == 96:
+        return _mk_screens_96(tail)
+    elif len(tail) == 400:
+        return _mk_screens_400(tail)
+    raise ValueError('bad tail length')
+
+
+class Manager:
+    __slots__ = ('lcd', 'thread', 'screens')
+
+    def __init__(self, lcd):
+        self.lcd = lcd
+        self.thread = None
+        self.screens = _mk_screens_0()
+
+    def update_screens(self, tail):
+        self.screens = tail_to_screens(tail)
+
+    def start_worker_thread(self):
+        assert self.thread is None
+        self.thread = threading.Thread(
+            target=self._worker,
+            daemon=True,
+        )
+        self.thread.start()
+
+    def _worker(self):
+        while True:
+            self.lcd.lcd_screens(*self.screens)
+            
+        
+                
+        
+        

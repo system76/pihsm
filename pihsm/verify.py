@@ -23,11 +23,25 @@ from nacl.exceptions import BadSignatureError
 Node = namedtuple('Node', 'signature pubkey previous counter timestamp message')
 
 
+def get_signature(signed):
+    assert type(signed) is bytes and len(signed) >= 96
+    sig = signed[0:64]
+    assert len(sig) == 64
+    return sig
+
+
 def get_pubkey(signed):
     assert type(signed) is bytes and len(signed) >= 96
     pubkey = signed[64:96]
     assert len(pubkey) == 32
     return pubkey
+
+
+def get_counter(signed):
+    assert type(signed) is bytes and len(signed) >= 176
+    cnt = signed[160:168]
+    assert len(cnt) == 8
+    return int.from_bytes(cnt, 'little')
 
 
 def verify_message(signed):

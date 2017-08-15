@@ -105,7 +105,7 @@ def run_client():
 
 def run_server():
     import smbus
-    from pihsm.display import LCD, pub_to_lines
+    from pihsm.display import LCD
 
     bus = smbus.SMBus(1)
     lcd = LCD(bus)

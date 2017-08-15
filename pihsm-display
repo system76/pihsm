@@ -16,16 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import argparse
-import serial
-import os
 import time
+import os
 
 import smbus
 
 import pihsm
-from pihsm.sign import get_entropy_avail
-from pihsm.display import LCD
+from pihsm.display import LCD, Manager
+from pihsm.sign import Signer, get_time
 
 
 log = pihsm.configure_logging(__name__)
@@ -34,15 +32,16 @@ log = pihsm.configure_logging(__name__)
 bus = smbus.SMBus(1)
 lcd = LCD(bus)
 lcd.lcd_init()
+manager = Manager(lcd)
+manager.start_worker_thread()
 
-while True:
-    avail = get_entropy_avail()
-    lines = (
-        'Unix Time:'.ljust(20),
-        str(int(time.time())).rjust(20),
-        'Entropy Available:'.ljust(20),
-        str(avail).rjust(20),
-    )
-    lcd.lcd_text_lines(*lines)
-    time.sleep(1)
+time.sleep(60)
+s = Signer()
+manager.update_screens(s.genesis)
 
+time.sleep(60)
+c = Signer()
+request = c.sign(get_time(), os.urandom(48))
+response = s.sign(get_time(), request)
+manager.update_screens(response)
+time.sleep(60)

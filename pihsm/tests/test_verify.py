@@ -26,12 +26,28 @@ from  .. import verify
 
 
 class TestFunctions(TestCase):
+    def test_get_signature(self):
+        sig = os.urandom(64)
+        pub = os.urandom(32)
+        msg = os.urandom(48)
+        self.assertEqual(verify.get_signature(sig + pub), sig)
+        self.assertEqual(verify.get_signature(sig + pub + msg), sig)
+
     def test_get_pubkey(self):
         sig = os.urandom(64)
         pub = os.urandom(32)
         msg = os.urandom(48)
         self.assertEqual(verify.get_pubkey(sig + pub), pub)
         self.assertEqual(verify.get_pubkey(sig + pub + msg), pub)
+
+    def test_get_counter(self):
+        prefix = os.urandom(160)
+        counter = random_u64()
+        suffix = os.urandom(8)
+        msg = os.urandom(48)
+        signed = prefix + counter.to_bytes(8, 'little') + suffix
+        self.assertEqual(verify.get_counter(signed), counter)
+        self.assertEqual(verify.get_counter(signed + msg), counter)
 
     def test_verify_message(self):
         sk = SigningKey.generate()
