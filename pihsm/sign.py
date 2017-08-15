@@ -33,6 +33,12 @@ from nacl.signing import SigningKey
 log = logging.getLogger(__name__)
 
 
+def get_entropy_avail(filename='/proc/sys/kernel/random/entropy_avail'):
+    with open(filename, 'rb', 0) as fp:
+        return int(fp.read(20))
+
+
+
 def build_signing_form(public, previous, counter, timestamp, message):
     assert type(public) is bytes and len(public) == 32
     assert type(previous) is bytes and len(previous) == 64

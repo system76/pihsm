@@ -63,6 +63,7 @@ setup(
     ],
     scripts=[
         'pihsm-server',
+        'pihsm-display',
     ],
 )
 

@@ -1,0 +1,48 @@
+#!/usr/bin/python3
+
+# pihsm: Turn your Raspberry Pi into a Hardware Security Module 
+# Copyright (C) 2017 System76, Inc.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import serial
+import os
+import time
+
+import smbus
+
+import pihsm
+from pihsm.sign import get_entropy_avail
+from pihsm.display import LCD
+
+
+log = pihsm.configure_logging(__name__)
+
+
+bus = smbus.SMBus(1)
+lcd = LCD(bus)
+lcd.lcd_init()
+
+while True:
+    avail = get_entropy_avail()
+    lines = (
+        'Unix Time:'.ljust(20),
+        str(int(time.time())).rjust(20),
+        'Entropy Available:'.ljust(20),
+        str(avail).rjust(20),
+    )
+    lcd.lcd_text_lines(*lines)
+    time.sleep(1)
+

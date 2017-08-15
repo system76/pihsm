@@ -1,0 +1,21 @@
+#!/bin/sh -e
+
+case $1 in
+    configure)
+        if ! getent passwd pihsm-display > /dev/null; then
+            adduser --system --quiet \
+                --home /var/lib/pihsm-display --no-create-home \
+                --shell /bin/bash --group --gecos "pihsm-display" pihsm-display
+        fi
+        if test "`id -u pihsm-display`" -eq 0; then
+            echo "The pihsm-display administrative user must not be root." >&2
+            false
+        fi
+        if test "`id -g pihsm-display`" -eq 0; then
+            echo "The pihsm-display administrative group must not be root." >&2
+            false
+        fi
+        adduser pihsm-display i2c
+esac
+
+#DEBHELPER#

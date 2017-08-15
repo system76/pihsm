@@ -23,7 +23,7 @@ import time
 import hashlib
 
 import pihsm
-from pihsm.sign import Signer
+from pihsm.sign import Signer, get_entropy_avail
 from pihsm.verify import isvalid, verify_and_unpack, get_pubkey
 
 
@@ -111,15 +111,20 @@ def run_server():
     lcd = LCD(bus)
     lcd.lcd_init()
 
-    s = Signer()
-    lines = pub_to_lines('Public Key:'.center(20), s.public)
-    lcd.lcd_text_lines(*lines)
-
-    ttl = open_serial('/dev/ttyAMA0')
-    i = 0
     while True:
-        run_server_once(s, ttl, i, lcd)
-        i += 1
+        avail = get_entropy_avail()
+        lcd.lcd_text_lines(str(avail).rjust(20))
+        time.sleep(2)
+
+#    s = Signer()
+#    lines = pub_to_lines('Public Key:'.center(20), s.public)
+#    lcd.lcd_text_lines(*lines)
+
+#    ttl = open_serial('/dev/ttyAMA0')
+#    i = 0
+#    while True:
+#        run_server_once(s, ttl, i, lcd)
+#        i += 1
 
 
 parser = argparse.ArgumentParser()
@@ -130,6 +135,6 @@ args = parser.parse_args()
 
 if args.client:
     run_client()
-else:
-    run_server()
+#else:
+#    run_server()
 

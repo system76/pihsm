@@ -15,8 +15,6 @@ case $1 in
             echo "The pihsm-server administrative group must not be root." >&2
             false
         fi
-        adduser pihsm-server i2c
-        adduser pihsm-server dialout
 esac
 
 #DEBHELPER#

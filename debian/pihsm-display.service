@@ -1,0 +1,11 @@
+[Unit]
+Description=pihsm display
+
+[Service]
+User=pihsm-display
+ExecStart=/usr/bin/pihsm-display
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
