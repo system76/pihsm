@@ -67,13 +67,13 @@ class TestFunctions(TestCase):
         sig = s1 + s2
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                '   Signature (1):   ',
+                '     Tail (1):      ',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAA====    ',
             ),
             (
-                '   Signature (2):   ',
+                '     Tail (2):      ',
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777Q====    ',
@@ -82,13 +82,13 @@ class TestFunctions(TestCase):
         sig = s2 + s1
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                '   Signature (1):   ',
+                '     Tail (1):      ',
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777Q====    ',
             ),
             (
-                '   Signature (2):   ',
+                '     Tail (2):      ',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAA====    ',
@@ -100,13 +100,13 @@ class TestFunctions(TestCase):
         b2 = b32encode(sig[32:]).decode()
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                '   Signature (1):   ',
+                '     Tail (1):      ',
                 b1[0:20],
                 b1[20:40],
                 b1[40:] + '    ',
             ),
             (
-                '   Signature (2):   ',
+                '     Tail (2):      ',
                 b2[0:20],
                 b2[20:40],
                 b2[40:] + '    ',
@@ -253,4 +253,18 @@ class TestManager(TestCase):
         self.assertIs(manager.lcd, lcd)
         self.assertIsNone(manager.thread)
         self.assertEqual(manager.screens, display._mk_screens_0())
+        self.assertEqual(lcd._calls, ['lcd_init'])
+
+    def test_update_screens(self):
+        lcd = MockLCD()
+        manager = display.Manager(lcd)
+        pairs = (
+            (96, display._mk_screens_96),
+            (400, display._mk_screens_400),
+        )
+        for (size, func) in pairs:
+            tail = os.urandom(size)
+            self.assertIsNone(manager.update_screens(tail))
+            self.assertEqual(manager.screens, func(tail))
+        self.assertEqual(lcd._calls, ['lcd_init'])
 

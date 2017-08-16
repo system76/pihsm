@@ -31,17 +31,17 @@ log = pihsm.configure_logging(__name__)
 
 bus = smbus.SMBus(1)
 lcd = LCD(bus)
-lcd.lcd_init()
 manager = Manager(lcd)
 manager.start_worker_thread()
 
-time.sleep(60)
+time.sleep(30)
 s = Signer()
 manager.update_screens(s.genesis)
 
-time.sleep(60)
 c = Signer()
-request = c.sign(get_time(), os.urandom(48))
-response = s.sign(get_time(), request)
-manager.update_screens(response)
-time.sleep(60)
+while True:
+    time.sleep(30)
+    request = c.sign(get_time(), os.urandom(48))
+    response = s.sign(get_time(), request)
+    manager.update_screens(response)
+

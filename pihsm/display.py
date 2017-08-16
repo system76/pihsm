@@ -173,7 +173,7 @@ def _mk_signature_lines(sig, i, template):
     )
 
 
-def _mk_signature_screens(sig, template='Signature ({:d}):'):
+def _mk_signature_screens(sig, template='Tail ({:d}):'):
     assert type(sig) is bytes and len(sig) == 64
     return tuple(_mk_signature_lines(sig, i, template) for i in [0, 1])
 
@@ -221,6 +221,7 @@ class Manager:
         self.lcd = lcd
         self.thread = None
         self.screens = _mk_screens_0()
+        self.lcd.lcd_init()
 
     def update_screens(self, tail):
         self.screens = tail_to_screens(tail)
