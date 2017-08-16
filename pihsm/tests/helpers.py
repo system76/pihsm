@@ -18,6 +18,7 @@ import os
 from os import path
 import tempfile
 import shutil
+import socket
 from unittest import TestCase
 
 
@@ -89,6 +90,20 @@ class TempDir:
 
     def remove(self, *parts):
         os.remove(self.join(*parts))
+
+
+class TempUnixSocket:
+    __slots__ = ('dir', 'filename', 'sock')
+
+    def __init__(self):
+        self.dir = TempDir()
+        self.filename = self.dir.join('temp.socket')
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.bind(self.filename)
+        self.sock.listen(0)
+
+    def __del__(self):
+        self.sock.close()
 
 
 class TestFunctions(TestCase):

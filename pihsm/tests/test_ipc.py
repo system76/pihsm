@@ -19,7 +19,7 @@ import os
 
 from nacl.exceptions import BadSignatureError
 
-from .helpers import random_u64, iter_permutations
+from .helpers import random_u64, iter_permutations, TempUnixSocket
 from ..sign import Signer
 from  .. import ipc
 
@@ -272,3 +272,7 @@ class TestIPCServer(TestCase):
                     'Signature was forged or corrupt',
                 )
 
+
+class TestIPCServerLive(TestCase):
+    def test_live(self):
+        tmp = TempUnixSocket()

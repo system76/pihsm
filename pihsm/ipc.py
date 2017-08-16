@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import socket
 
 from .verify import verify_message
 
@@ -92,10 +93,14 @@ class IPCServer:
             (sock, address) = self.sock.accept()
             try:
                 request = self.read_request(sock)
+                log.info('%s byte request', len(request))
                 response = self.handle_request(request)
+                log.info('%s byte response', len(request))
                 _send(sock, response)
             except:
                 log.exception('Error handling request:')
+            finally:
+                sock.close()
 
     def read_request(self, sock):
         size = _recv_into(sock, self.dst)
@@ -109,4 +114,33 @@ class IPCServer:
 
     def handle_request(self, request):
         return b'hello, world'
+
+
+
+class IPCClient:
+    __slots__ = ('filename', 'dst')
+
+    def __init__(self, filename, response_size):
+        self.filename = filename
+        self.dst = memoryview(bytearray(response_size))
+
+    def connect(self):
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(self.filename)
+        return sock
+
+    def make_request(self, request):
+        sock = self.connect()
+        try:
+            _send(sock, request)
+            size = _recv_into(sock, self.dst)
+            if size != len(self.dst):
+                raise ValueError(
+                    'bad response size: expected {}; got {}'.format(
+                        size, len(self.dst)
+                    )
+                )
+            return self.dst.tobytes()
+        finally:
+            sock.close()
 

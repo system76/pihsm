@@ -1,5 +1,7 @@
 [Unit]
-Description=pihsm display
+Description=PiHSM Display Service
+After=network.target pihsm-display.socket
+Requires=pihsm-display.socket
 
 [Service]
 User=pihsm-display

@@ -1,0 +1,9 @@
+[Unit]
+Description=PiHSM Display Socket
+PartOf=pihsm-display.service
+
+[Socket]
+ListenStream=/run/pihsm/display.socket
+
+[Install]
+WantedBy=sockets.target
