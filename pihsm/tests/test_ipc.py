@@ -276,3 +276,4 @@ class TestIPCServer(TestCase):
 class TestIPCServerLive(TestCase):
     def test_live(self):
         tmp = TempUnixSocket()
+        server = ipc.IPCServer(tmp.sock, 96)

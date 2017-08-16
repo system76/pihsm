@@ -132,12 +132,26 @@ class TestFunctions(TestCase):
                 0b01111111,
             ]
         )
+        self.assertEqual(170, 0b10101010)
+        self.assertEqual(list(iter_bit_permutations(170)),
+            [
+                0b10101011,
+                0b10101000,
+                0b10101110,
+                0b10100010,
+                0b10111010,
+                0b10001010,
+                0b11101010,
+                0b00101010,
+            ]
+        )
 
     def test_iter_permutations(self):
         for size in (1, 2, 17, 96):
             data = os.urandom(size)
             perms = tuple(iter_permutations(data))
+            pset = frozenset(perms)
             self.assertEqual(len(perms), size * 8)
-            for p in perms:
-                self.assertNotEqual(p, data)
+            self.assertEqual(len(pset), len(perms))
+            self.assertNotIn(data, pset)
 

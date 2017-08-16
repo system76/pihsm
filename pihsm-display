@@ -36,22 +36,22 @@ def open_activated_socket():
 
 
 s = IPCServer(open_activated_socket(), 96, 400)
-s.serve_forever()
+#s.serve_forever()
 
 
-#bus = smbus.SMBus(1)
-#lcd = LCD(bus)
-#manager = Manager(lcd)
-#manager.start_worker_thread()
+bus = smbus.SMBus(1)
+lcd = LCD(bus)
+manager = Manager(lcd)
+manager.start_worker_thread()
 
-#time.sleep(30)
-#s = Signer()
-#manager.update_screens(s.genesis)
+time.sleep(30)
+s = Signer()
+manager.update_screens(s.genesis)
 
-#c = Signer()
-#while True:
-#    time.sleep(30)
-#    request = c.sign(get_time(), os.urandom(48))
-#    response = s.sign(get_time(), request)
-#    manager.update_screens(response)
+c = Signer()
+while True:
+    time.sleep(30)
+    request = c.sign(get_time(), os.urandom(48))
+    response = s.sign(get_time(), request)
+    manager.update_screens(response)
 
