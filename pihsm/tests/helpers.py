@@ -14,25 +14,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 import os
 from os import path
 import tempfile
 import shutil
+from unittest import TestCase
 
 
 def random_u64():
     return int.from_bytes(os.urandom(8), 'little', signed=False)
 
 
+def iter_bit_permutations(b):
+    assert type(b) is int and 0 <= b <= 255
+    for i in range(8):
+        p = b ^ (1 << i)
+        assert p != b
+        yield p
+
+
 def iter_permutations(data):
     for i in range(len(data)):
-        orig = data[i]
         template = list(data)
-        for j in range(256):
-            if j != orig:
-                template[i] = j
-                yield bytes(template)
+        for p in iter_bit_permutations(data[i]):
+            template[i] = p
+            yield bytes(template)
 
 
 class MockStorage:
@@ -83,4 +89,40 @@ class TempDir:
 
     def remove(self, *parts):
         os.remove(self.join(*parts))
+
+
+class TestFunctions(TestCase):
+    def test_iter_bit_permutations(self):
+        self.assertEqual(list(iter_bit_permutations(0)),
+            [
+                0b00000001,
+                0b00000010,
+                0b00000100,
+                0b00001000,
+                0b00010000,
+                0b00100000,
+                0b01000000,
+                0b10000000,
+            ]
+        )
+        self.assertEqual(list(iter_bit_permutations(255)),
+            [
+                0b11111110,
+                0b11111101,
+                0b11111011,
+                0b11110111,
+                0b11101111,
+                0b11011111,
+                0b10111111,
+                0b01111111,
+            ]
+        )
+
+    def test_iter_permutations(self):
+        for size in (1, 2, 17, 96):
+            data = os.urandom(size)
+            perms = tuple(iter_permutations(data))
+            self.assertEqual(len(perms), size * 8)
+            for p in perms:
+                self.assertNotEqual(p, data)
 
