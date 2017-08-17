@@ -1,20 +1,20 @@
-PiHSM Protocol
-==============
+Protocol
+========
 
 
 Signed Messages
 ---------------
 
-All signed messages used in the protocol use a common 96-byte prefix, followed
-by zero or more bytes of message payload to be signed::
+All signed messages have a common 96-byte prefix, followed by zero or more bytes
+of message payload to be signed::
 
     +------------+------------+------------+
     | Signature  | Public Key | Message    |
     | (64 bytes) | (32 bytes) | (variable) |
     +------------+------------+------------+
 
-The first 64 bytes contains the Ed25519 signature of the remaining bytes (both
-the Public Key plus message are signed).
+The first 64 bytes contains the Ed25519 signature, which signs all of the
+remaining bytes in the message (the Public Key plus the Message are signed).
 
 The next 32 bytes contains the Ed25119 public key corresponding to private key
 used to make the signature.
@@ -28,15 +28,13 @@ to create a verifiable log about use of the particular private key.  This
 chain allows the external chain to be verified as matching the latest signature
 displayed on the 20x4 LCD.
 
-So all normal signed messages used in the protocol use a common 160-byte
-prefix::
+All signed messages used in the protocol (aside from the genesis message,
+explained below) have a common 160-byte prefix::
 
     +------------+------------+--------------------+------------+
     | Signature  | Public Key | Previous Signature | Message    |
     | (64 bytes) | (32 bytes) | (64 bytes)         | (variable) |
     +------------+------------+--------------------+------------+
-
-The first signature references the special genesis signature, described below.
 
 
 Genesis Signature
@@ -73,7 +71,7 @@ and a timestamp::
 The *Counter* is and 64-bit unsigned integer (in little endian format). The counter
 is initialized at ``0`` and is incremented *before* a signature is made.  So
 the first signature will have a counter value of ``1``.  A counter value of
-``0`` is not valid in the protocol, and is used to detect a counter overflow.
+``0`` is not valid in the protocol (it is used to detect a counter overflow).
 
 The *Timestamp* is likewise a 64-bit unsigned integer (in little endian format).
 This field contains a Unix timestamp at which the signature was made.
@@ -96,8 +94,8 @@ signed::
     | (64 bytes) | (32 bytes) | (64 bytes)         | (8 bytes) | (8 bytes) | (48 bytes) |
     +------------+------------+--------------------+-----------+-----------+------------+
 
-This exact 224-byte fixed-length message is sent over serial to the signing
-server.
+This exact 224-byte fixed-length message is sent over the serial interface to
+the signing server.
 
 
 Signing Response
