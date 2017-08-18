@@ -112,13 +112,28 @@ This is the exact 400-byte fixed-length message returned::
     +------------+------------+--------------------+-----------+-----------+-------------------+
 
 
-Serial Protocol
----------------
+Wire Format
+-----------
 
 A PiHSM client (likely a build server) can only communicate with the PiHSM
-server when it is physically connected using TTL serial communication.
+server when it is physically connected using TTL serial communication.  Although
+the PiHSM signing server is not truly "offline" in the sense of being
+air-gapped, the fact that you can only communicate with it over TTL serial
+dramatically reduces the attack surface.  Which is not to say that we have
+unrealistic expectations in terms PiHSM being resistant to attack... it's always
+prudent to assume there is an exploitable flaw lingering in there somewhere.
 
 The serial protocol is as simple as possible.  This is only one interaction
 possible: the client sends a 224-byte Signing Request and then the server
 returns a 400-byte Signing Response.
+
+This::
+
+    +----------+----------------------------------------------------+----------+
+    |          |                                                    |          |
+    |          |  Signing Request (224 bytes) ------------------->  |          |
+    |  Client  |                                                    |  Server  |
+    |          |  <------------------ Signing Response (400 bytes)  |          |
+    |          |                                                    |          |
+    +----------+----------------------------------------------------+----------+
 
