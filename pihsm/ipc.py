@@ -14,13 +14,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 import logging
 import socket
+from hashlib import sha384
 
 from .verify import verify_message
 
 
 log = logging.getLogger(__name__)
+
+
+def open_activated_socket(fd=3):
+    sock = socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+    log.info('opened %r', sock)
+    return sock
 
 
 def _validate_size(size, max_size):
@@ -37,6 +45,7 @@ def _validate_size(size, max_size):
 
 
 def _recv_into_once(sock, dst):
+    log.info('_recv_into_once(%d)', len(dst))
     assert type(dst) is memoryview
     max_size = len(dst)
     size = sock.recv_into(dst)
@@ -44,6 +53,7 @@ def _recv_into_once(sock, dst):
 
 
 def _recv_into(sock, dst):
+    log.info('_recv_into(%d)', len(dst))
     start = 0
     stop = len(dst)
     while start < stop:
@@ -55,6 +65,7 @@ def _recv_into(sock, dst):
 
 
 def _send_once(sock, src):
+    log.info('_send_once(%d)', len(src))
     assert type(src) is memoryview
     max_size = len(src)
     size = sock.send(src)
@@ -62,7 +73,8 @@ def _send_once(sock, src):
 
 
 def _send(sock, src):
-    assert type(src) is bytes and len(src) > 0, (src, len(src))
+    log.info('_send(%d)', len(src))
+    assert type(src) is bytes and len(src) > 0
     src = memoryview(src)
     start = 0
     stop = len(src)
@@ -78,24 +90,27 @@ def _send(sock, src):
     return start
 
 
-class IPCServer:
-    __slots__ = ('sock', 'sizes', 'dst')
+class Server:
+    __slots__ = ('sock', 'sizes', 'max_size', 'dst')
 
     def __init__(self, sock, *sizes):
         for s in sizes:
             assert type(s) is int and s > 0
         self.sock = sock
         self.sizes = sizes
+        self.max_size = max(sizes)
         self.dst = memoryview(bytearray(max(sizes)))
 
     def serve_forever(self):
+        log.info('server_forever...')
         while True:
             (sock, address) = self.sock.accept()
             try:
+                sock.settimeout(1)
                 request = self.read_request(sock)
                 log.info('%s byte request', len(request))
                 response = self.handle_request(request)
-                log.info('%s byte response', len(request))
+                log.info('%s byte response', len(response))
                 _send(sock, response)
             except:
                 log.exception('Error handling request:')
@@ -103,21 +118,37 @@ class IPCServer:
                 sock.close()
 
     def read_request(self, sock):
-        size = _recv_into(sock, self.dst)
+        log.info('Reading request from connection %r', sock)
+        request = sock.recv(self.max_size)
+        size = len(request)
         if size not in self.sizes:
             raise ValueError(
                 'bad request size {!r} not in {!r}'.format(size, self.sizes)
             )
-        request = self.dst[0:size].tobytes()
         verify_message(request)
         return request
 
     def handle_request(self, request):
-        return b'hello, world'
+        raise NotImplementedError(
+            '%s.handle_request(request)'.format(self.__class__.__name__)
+        )
 
 
+class DisplayServer(Server):
+    __slots__ = ('manager',)
 
-class IPCClient:
+    def __init__(self, manager, sock):
+        super().__init__(sock, 96, 400)
+        self.manager = manager
+
+    def handle_request(self, request):
+        self.manager.update_screens(request)
+        d = sha384(request).digest()
+        log.info(d.hex())
+        return d
+
+
+class Client:
     __slots__ = ('filename', 'dst')
 
     def __init__(self, filename, response_size):
@@ -126,6 +157,7 @@ class IPCClient:
 
     def connect(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        #sock.settimeout(1)
         sock.connect(self.filename)
         return sock
 
@@ -137,10 +169,19 @@ class IPCClient:
             if size != len(self.dst):
                 raise ValueError(
                     'bad response size: expected {}; got {}'.format(
-                        size, len(self.dst)
+                        len(self.dst), size
                     )
                 )
             return self.dst.tobytes()
         finally:
             sock.close()
+
+
+class DisplayClient(Client):
+    def __init__(self, filename):
+        super().__init__(filename, 48)
+
+    def make_request(self, request):
+        response = super().make_request(request)
+        return response
 

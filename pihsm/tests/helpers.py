@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 import os
 from os import path
 import tempfile
 import shutil
-import socket
 from unittest import TestCase
 
 
@@ -92,20 +92,6 @@ class TempDir:
         os.remove(self.join(*parts))
 
 
-class TempUnixSocket:
-    __slots__ = ('dir', 'filename', 'sock')
-
-    def __init__(self):
-        self.dir = TempDir()
-        self.filename = self.dir.join('temp.socket')
-        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.sock.bind(self.filename)
-        self.sock.listen(0)
-
-    def __del__(self):
-        self.sock.close()
-
-
 class TestFunctions(TestCase):
     def test_iter_bit_permutations(self):
         self.assertEqual(list(iter_bit_permutations(0)),
@@ -147,7 +133,7 @@ class TestFunctions(TestCase):
         )
 
     def test_iter_permutations(self):
-        for size in (1, 2, 17, 96):
+        for size in (1, 2, 17, 96, 224, 400):
             data = os.urandom(size)
             perms = tuple(iter_permutations(data))
             pset = frozenset(perms)

@@ -204,7 +204,6 @@ def _mk_screens_400(tail):
     ) + _mk_signature_screens(get_signature(tail))
 
 
-
 def tail_to_screens(tail):
     assert type(tail) is bytes
     if len(tail) == 96:
@@ -237,8 +236,4 @@ class Manager:
     def _worker(self):
         while True:
             self.lcd.lcd_screens(*self.screens)
-            
-        
-                
-        
-        
+

@@ -16,12 +16,18 @@
 
 from unittest import TestCase
 import os
+import socket
+import hashlib
+import logging
 
 from nacl.exceptions import BadSignatureError
 
-from .helpers import random_u64, iter_permutations, TempUnixSocket
+from .helpers import random_u64, iter_permutations, TempDir
 from ..sign import Signer
 from  .. import ipc
+
+
+log = logging.getLogger(__name__)
 
 
 class UserInt(int):
@@ -32,6 +38,10 @@ class MockSocket:
     def __init__(self, *returns):
         self._returns = list(returns)
         self._calls = []
+
+    def recv(self, size):
+        self._calls.append(('recv', size))
+        return self._returns.pop(0)
 
     def recv_into(self, dst):
         self._calls.append(('recv_into', len(dst)))
@@ -222,20 +232,20 @@ class TestFunctions(TestCase):
             self.assertEqual(sock._calls, [('send', src)])
 
 
-class TestIPCServer(TestCase):
+class TestServer(TestCase):
     def test_init(self):
         sock = MockSocket()
-        server = ipc.IPCServer(sock, 96, 400)
+        server = ipc.Server(sock, 96, 400)
         self.assertIs(server.sock, sock)
         self.assertEqual(server.sizes, (96, 400))
         self.assertIsInstance(server.dst, memoryview)
 
     def test_read_request(self):
-        server = ipc.IPCServer(None, 96, 224, 400)
+        server = ipc.Server(None, 96, 224, 400)
 
         # Bad request size:
         for bad in [0, 1, 95, 97, 223, 225, 399]:
-            sock = MockSocket(bad, 0)
+            sock = MockSocket(os.urandom(bad))
             with self.assertRaises(ValueError) as cm:
                 server.read_request(sock)
             self.assertEqual(str(cm.exception),
@@ -261,7 +271,6 @@ class TestIPCServer(TestCase):
             self.assertIn(len(good), server.sizes)
             sock = MockSocket(good, 0)
             self.assertEqual(server.read_request(sock), good)
-            self.assertEqual(server.dst[0:len(good)], good)
 
             # But should still fail under any permutation:
             for permutation in iter_permutations(good):
@@ -273,7 +282,68 @@ class TestIPCServer(TestCase):
                 )
 
 
-class TestIPCServerLive(TestCase):
-    def test_live(self):
-        tmp = TempUnixSocket()
-        server = ipc.IPCServer(tmp.sock, 96)
+def _run_server(queue, filename, build_func, *build_args):
+    log.error('_run_server: %r', filename)
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.bind(filename)
+        sock.listen(5)
+        server = build_func(sock, *build_args)
+        queue.put(None)
+        server.serve_forever()
+    except Exception as e:
+        queue.put(e)
+        raise e
+
+
+def _start_server(filename, build_func, *build_args):
+    import multiprocessing
+    queue = multiprocessing.Queue()
+    process = multiprocessing.Process(
+        target=_run_server,
+        args=(queue, filename, build_func) + build_args,
+        daemon=True,
+    )
+    process.start()
+    status = queue.get()
+    if isinstance(status, Exception):
+        process.terminate()
+        process.join()
+        raise status
+    return process
+
+
+class TempServer:
+    def __init__(self, build_func, *build_args):
+        self.tmpdir = TempDir()
+        self.filename = self.tmpdir.join('temp.socket')
+        self.process = _start_server(self.filename, build_func, *build_args)
+
+    def __del__(self):
+        self.terminate()
+
+    def terminate(self):
+        if getattr(self, 'process', None) is not None:
+            self.process.terminate()
+            self.process.join()
+
+
+class MockDisplayManager:
+    def update_screens(self, request):
+        pass
+
+
+def _build_display_server(sock):
+    return ipc.DisplayServer(MockDisplayManager(), sock)
+
+
+class TestLiveIPC(TestCase):
+    def test_display_ipc(self):
+        server = TempServer(_build_display_server)
+        client = ipc.DisplayClient(server.filename)
+        s = Signer()
+        signed1 = s.sign(random_u64(), os.urandom(224))
+        signed2 = s.sign(random_u64(), os.urandom(224))
+        for request in [s.genesis, signed1, signed2]:
+            client.make_request(request)
+
