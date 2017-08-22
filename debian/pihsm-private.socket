@@ -1,0 +1,9 @@
+[Unit]
+Description=PiHSM Display Socket
+PartOf=pihsm-private.service
+
+[Socket]
+ListenStream=/run/pihsm/private.socket
+
+[Install]
+WantedBy=sockets.target

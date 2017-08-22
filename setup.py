@@ -62,6 +62,7 @@ setup(
         'pihsm.tests'
     ],
     scripts=[
+        'pihsm-private',
         'pihsm-server',
         'pihsm-display',
     ],

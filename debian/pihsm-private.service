@@ -1,0 +1,13 @@
+[Unit]
+Description=PiHSM Private Key Signing Service
+After=network.target pihsm-private.socket
+Requires=pihsm-private.socket
+
+[Service]
+User=pihsm-private
+ExecStart=/usr/bin/pihsm-private
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+

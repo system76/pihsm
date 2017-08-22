@@ -1,0 +1,20 @@
+#!/bin/sh -e
+
+case $1 in
+    configure)
+        if ! getent passwd pihsm-private > /dev/null; then
+            adduser --system --quiet \
+                --home /var/lib/pihsm-private --no-create-home \
+                --shell /bin/bash --group --gecos "pihsm-private" pihsm-private
+        fi
+        if test "`id -u pihsm-private`" -eq 0; then
+            echo "The pihsm-private administrative user must not be root." >&2
+            false
+        fi
+        if test "`id -g pihsm-private`" -eq 0; then
+            echo "The pihsm-private administrative group must not be root." >&2
+            false
+        fi
+esac
+
+#DEBHELPER#
