@@ -345,5 +345,6 @@ class TestLiveIPC(TestCase):
         signed1 = s.sign(random_u64(), os.urandom(224))
         signed2 = s.sign(random_u64(), os.urandom(224))
         for request in [s.genesis, signed1, signed2]:
-            client.make_request(request)
+            digest = hashlib.sha384(request).digest()
+            self.assertEqual(client.make_request(request), digest)
 

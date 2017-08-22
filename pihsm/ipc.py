@@ -45,7 +45,6 @@ def _validate_size(size, max_size):
 
 
 def _recv_into_once(sock, dst):
-    log.info('_recv_into_once(%d)', len(dst))
     assert type(dst) is memoryview
     max_size = len(dst)
     size = sock.recv_into(dst)
@@ -53,7 +52,6 @@ def _recv_into_once(sock, dst):
 
 
 def _recv_into(sock, dst):
-    log.info('_recv_into(%d)', len(dst))
     start = 0
     stop = len(dst)
     while start < stop:
@@ -65,7 +63,6 @@ def _recv_into(sock, dst):
 
 
 def _send_once(sock, src):
-    log.info('_send_once(%d)', len(src))
     assert type(src) is memoryview
     max_size = len(src)
     size = sock.send(src)
@@ -73,7 +70,6 @@ def _send_once(sock, src):
 
 
 def _send(sock, src):
-    log.info('_send(%d)', len(src))
     assert type(src) is bytes and len(src) > 0
     src = memoryview(src)
     start = 0
@@ -102,7 +98,6 @@ class Server:
         self.dst = memoryview(bytearray(max(sizes)))
 
     def serve_forever(self):
-        log.info('server_forever...')
         while True:
             (sock, address) = self.sock.accept()
             try:
@@ -144,7 +139,6 @@ class DisplayServer(Server):
     def handle_request(self, request):
         self.manager.update_screens(request)
         d = sha384(request).digest()
-        log.info(d.hex())
         return d
 
 
@@ -157,7 +151,7 @@ class Client:
 
     def connect(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        #sock.settimeout(1)
+        sock.settimeout(1)
         sock.connect(self.filename)
         return sock
 
@@ -182,6 +176,8 @@ class DisplayClient(Client):
         super().__init__(filename, 48)
 
     def make_request(self, request):
+        digest = sha384(request).digest()
         response = super().make_request(request)
+        assert response == digest
         return response
 
