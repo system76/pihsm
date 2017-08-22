@@ -41,3 +41,16 @@ def read_serial(ttl, size):
     log.warning('bad signature from pubkey %s', get_pubkey(msg).hex())
     return None
 
+
+class SerialServer:
+    def __init__(self, ttl, private_client):
+        self.ttl = ttl
+        self.private_client = private_client
+
+    def serve_forever(self):
+        while True:
+            request = read_serial(self.ttl, 224)
+            if request is not None:
+                response = self.private_client.make_request(request)
+                self.ttl.write(response)
+

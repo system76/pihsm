@@ -16,6 +16,7 @@
 
 
 import logging
+import time
 import socket
 from hashlib import sha384
 
@@ -129,6 +130,20 @@ class Server:
         )
 
 
+class PrivateServer(Server):
+    __slots__ = ('display_client', 'signer')
+
+    def __init__(self, sock, display_client, signer):
+        super().__init__(sock, 224)
+        self.signer = signer
+        self.display_client = display_client
+
+    def handle_request(self, request):
+        signed = self.signer.sign(int(time.time()), request)
+        self.display_client.make_request(signed)
+        return signed
+
+
 class DisplayServer(Server):
     __slots__ = ('manager',)
 
@@ -172,7 +187,7 @@ class Client:
 
 
 class DisplayClient(Client):
-    def __init__(self, filename):
+    def __init__(self, filename='/run/pihsm/display.socket'):
         super().__init__(filename, 48)
 
     def make_request(self, request):
@@ -180,4 +195,9 @@ class DisplayClient(Client):
         response = super().make_request(request)
         assert response == digest
         return response
+
+
+class PrivateClient(Client):
+    def __init__(self, filename='/run/pihsm/private.socket'):
+        super().__init__(filename, 400)
 

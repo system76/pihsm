@@ -16,15 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import time
-
 import pihsm
-from pihsm.ipc import open_activated_socket
+from pihsm.sign import Signer
+from pihsm.ipc import open_activated_socket, PrivateServer, DisplayClient
 
 log = pihsm.configure_logging(__name__)
 
 
+# Create private key, send genesis signature to display server:
+display_client = DisplayClient('/run/pihsm/display.socket')
+signer = Signer()
+display_client.make_request(signer.genesis)
+
+# Open systemd activated AF_UNIX socket, setup IPC server:
 sock = open_activated_socket()
-while True:
-    print(sock)
-    time.sleep(30)
+server = PrivateServer(sock, display_client, signer)
+
+# Start server:
+server.serve_forever()
+

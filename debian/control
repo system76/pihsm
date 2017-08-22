@@ -25,18 +25,6 @@ Description: use your Raspberry Pi as a Hardware Security Module
  PiHSM provides an offline Public Key Signature server using the Ed25519
  digital signature algorithm.
 
-Package: pihsm-private
-Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends},
-    python3-pihsm (>= ${binary:Version}),
-Description: use your Raspberry Pi as a Hardware Security Module [private key]
- This turns your Raspberry Pi into a Hardware Security Module.
- .
- PiHSM provides an offline Public Key Signature server using the Ed25519
- digital signature algorithm.
- .
- This package provides the private key service.
-
 Package: pihsm-server
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends},
@@ -53,9 +41,24 @@ Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends},
     python3-pihsm (>= ${binary:Version}),
     python3-smbus,
-Description: use your Raspberry Pi as a Hardware Security Module [LCD control]
+Description: use your Raspberry Pi as a Hardware Security Module [LCD Control]
  This turns your Raspberry Pi into a Hardware Security Module.
  .
  PiHSM provides an offline Public Key Signature server using the Ed25519
  digital signature algorithm.
+ .
+ This package provides a service to control the 20x4 character I2C LCD display.
 
+Package: pihsm-private
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends},
+    python3-pihsm (>= ${binary:Version}),
+    pihsm-display (>= ${binary:Version}),
+Description: use your Raspberry Pi as a Hardware Security Module [Signing Service]
+ This turns your Raspberry Pi into a Hardware Security Module.
+ .
+ PiHSM provides an offline Public Key Signature server using the Ed25519
+ digital signature algorithm.
+ .
+ This package provides the private key service.
+ 

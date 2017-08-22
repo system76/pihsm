@@ -16,42 +16,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import time
-import os
-import socket
-
 import smbus
 
 import pihsm
-from pihsm.ipc import IPCServer
+from pihsm.ipc import open_activated_socket, DisplayServer
 from pihsm.display import LCD, Manager
-from pihsm.sign import Signer, get_time
 
 
 log = pihsm.configure_logging(__name__)
 
 
-def open_activated_socket(fd=3):
-    return socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
-
-
-s = IPCServer(open_activated_socket(), 96, 400)
-#s.serve_forever()
-
-
+# Setup I2C LCD display stuffs:
 bus = smbus.SMBus(1)
 lcd = LCD(bus)
 manager = Manager(lcd)
 manager.start_worker_thread()
 
-time.sleep(30)
-s = Signer()
-manager.update_screens(s.genesis)
+# Open systemd activated AF_UNIX socket, setup IPC server:
+sock = open_activated_socket()
+server = DisplayServer(manager, sock)
 
-c = Signer()
-while True:
-    time.sleep(30)
-    request = c.sign(get_time(), os.urandom(48))
-    response = s.sign(get_time(), request)
-    manager.update_screens(response)
+# Start server:
+server.serve_forever()
 
