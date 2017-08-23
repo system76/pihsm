@@ -7,15 +7,10 @@ case $1 in
                 --home /var/lib/pihsm-display --no-create-home \
                 --shell /bin/bash --group --gecos "pihsm-display" pihsm-display
         fi
-        if test "`id -u pihsm-display`" -eq 0; then
-            echo "The pihsm-display administrative user must not be root." >&2
-            false
+        if ! getent group pihsm-display-client > /dev/null; then
+            addgroup --system --quiet pihsm-display-client
         fi
-        if test "`id -g pihsm-display`" -eq 0; then
-            echo "The pihsm-display administrative group must not be root." >&2
-            false
-        fi
-        adduser pihsm-display i2c
+        adduser pihsm-display i2c --quiet
 esac
 
 #DEBHELPER#

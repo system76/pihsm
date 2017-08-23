@@ -4,6 +4,9 @@ PartOf=pihsm-private.service
 
 [Socket]
 ListenStream=/run/pihsm/private.socket
+Backlog=0
+SocketGroup=pihsm-private-client
+SocketMode=660
 
 [Install]
 WantedBy=sockets.target
