@@ -173,13 +173,13 @@ def _mk_signature_lines(sig, i, template):
     )
 
 
-def _mk_signature_screens(sig, template='Tail ({:d}):'):
+def _mk_signature_screens(sig, template='Tail.{:d}:'):
     assert type(sig) is bytes and len(sig) == 64
     return tuple(_mk_signature_lines(sig, i, template) for i in [0, 1])
 
 
 def _mk_genesis_screens(sig):
-    return _mk_signature_screens(sig, template='Genesis ({:d}):')
+    return _mk_signature_screens(sig, template='Genesis.{:d}:')
 
 
 def _mk_screens_0():

@@ -67,13 +67,13 @@ class TestFunctions(TestCase):
         sig = s1 + s2
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                '     Tail (1):      ',
+                'Tail.1:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAA====    ',
             ),
             (
-                '     Tail (2):      ',
+                'Tail.2:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777Q====    ',
@@ -82,13 +82,13 @@ class TestFunctions(TestCase):
         sig = s2 + s1
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                '     Tail (1):      ',
+                'Tail.1:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777Q====    ',
             ),
             (
-                '     Tail (2):      ',
+                'Tail.2:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAA====    ',
@@ -100,13 +100,13 @@ class TestFunctions(TestCase):
         b2 = b32encode(sig[32:]).decode()
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                '     Tail (1):      ',
+                'Tail.1:'.center(20),
                 b1[0:20],
                 b1[20:40],
                 b1[40:] + '    ',
             ),
             (
-                '     Tail (2):      ',
+                'Tail.2:'.center(20),
                 b2[0:20],
                 b2[20:40],
                 b2[40:] + '    ',
@@ -120,13 +120,13 @@ class TestFunctions(TestCase):
         sig = s1 + s2
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                '    Genesis (1):    ',
+                'Genesis.1:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAA====    ',
             ),
             (
-                '    Genesis (2):    ',
+                'Genesis.2:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777Q====    ',
@@ -135,13 +135,13 @@ class TestFunctions(TestCase):
         sig = s2 + s1
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                '    Genesis (1):    ',
+                'Genesis.1:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777Q====    ',
             ),
             (
-                '    Genesis (2):    ',
+                'Genesis.2:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAA====    ',
@@ -153,13 +153,13 @@ class TestFunctions(TestCase):
         b2 = b32encode(sig[32:]).decode()
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                '    Genesis (1):    ',
+                'Genesis.1:'.center(20),
                 b1[0:20],
                 b1[20:40],
                 b1[40:] + '    ',
             ),
             (
-                '    Genesis (2):    ',
+                'Genesis.2:'.center(20),
                 b2[0:20],
                 b2[20:40],
                 b2[40:] + '    ',
