@@ -34,7 +34,7 @@ manager.start_worker_thread()
 
 # Open systemd activated AF_UNIX socket, setup IPC server:
 sock = open_activated_socket()
-server = DisplayServer(manager, sock)
+server = DisplayServer(sock, manager)
 
 # Start server:
 server.serve_forever()
