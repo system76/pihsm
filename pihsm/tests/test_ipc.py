@@ -24,6 +24,7 @@ from nacl.exceptions import BadSignatureError
 
 from .helpers import random_u64, iter_permutations, TempDir
 from ..sign import Signer
+from .. import verify
 from  .. import ipc
 
 
@@ -57,188 +58,13 @@ class MockSocket:
         return self._returns.pop(0)
 
 
-class TestFunctions(TestCase):
-    def test_validate_size(self):
-        max_size = 76
-
-        # Bad size type:
-        for bad in [UserInt(17), 17.0]:
-            with self.assertRaises(TypeError) as cm:
-                ipc._validate_size(bad, max_size)
-            self.assertEqual(str(cm.exception),
-                'size: need a {!r}; got a {!r}'.format(int, type(bad))
-            )
-
-        # Bad size value:
-        for bad in [-1, max_size + 1]:
-            with self.assertRaises(ValueError) as cm:
-                ipc._validate_size(bad, max_size)
-            self.assertEqual(str(cm.exception),
-                'need 0 <= size <= 76; got {}'.format(bad)
-            )
-
-        # Good size type/values, but at edges of value limits:
-        for good in [0, max_size]:
-            self.assertIs(ipc._validate_size(good, max_size), good)
-
-        # Test with lowest max_size value:
-        self.assertEqual(ipc._validate_size(0, 1), 0)
-        self.assertEqual(ipc._validate_size(1, 1), 1)
-
-    def test_recv_into_once(self):
-        dst = memoryview(bytearray(400))
-
-        sock = MockSocket(400)
-        self.assertEqual(ipc._recv_into_once(sock, dst), 400)
-        self.assertEqual(sock._calls, [('recv_into', 400)])
-
-        sock = MockSocket(160)
-        self.assertEqual(ipc._recv_into_once(sock, dst), 160)
-        self.assertEqual(sock._calls, [('recv_into', 400)])
-
-        # Bad size type:
-        for bad in [UserInt(17), 17.0]:
-            sock = MockSocket(bad)
-            with self.assertRaises(TypeError) as cm:
-                ipc._recv_into_once(sock, dst)
-            self.assertEqual(str(cm.exception),
-                'size: need a {!r}; got a {!r}'.format(int, type(bad))
-            )
-            self.assertEqual(sock._calls, [('recv_into', 400)])
-
-        # Bad size value:
-        for bad in [-1, len(dst) + 1]:
-            sock = MockSocket(bad)
-            with self.assertRaises(ValueError) as cm:
-                ipc._recv_into_once(sock, dst)
-            self.assertEqual(str(cm.exception),
-                'need 0 <= size <= 400; got {}'.format(bad)
-            )
-            self.assertEqual(sock._calls, [('recv_into', 400)])
-
-    def test_recv_into(self):
-        dst = memoryview(bytearray(400))
-
-        sock = MockSocket(400)
-        self.assertEqual(ipc._recv_into(sock, dst), 400)
-        self.assertEqual(sock._calls, [('recv_into', 400)])
-
-        sock = MockSocket(160, 240)
-        self.assertEqual(ipc._recv_into(sock, dst), 400)
-        self.assertEqual(sock._calls, [('recv_into', 400), ('recv_into', 240)])
-
-        sock = MockSocket(96, 0)
-        self.assertEqual(ipc._recv_into(sock, dst), 96)
-        self.assertEqual(sock._calls, [('recv_into', 400), ('recv_into', 304)])
-
-        # Bad size type:
-        for bad in [UserInt(17), 17.0]:
-            sock = MockSocket(bad)
-            with self.assertRaises(TypeError) as cm:
-                ipc._recv_into(sock, dst)
-            self.assertEqual(str(cm.exception),
-                'size: need a {!r}; got a {!r}'.format(int, type(bad))
-            )
-            self.assertEqual(sock._calls, [('recv_into', 400)])
-
-        # Bad size value:
-        for bad in [-1, len(dst) + 1]:
-            sock = MockSocket(bad)
-            with self.assertRaises(ValueError) as cm:
-                ipc._recv_into(sock, dst)
-            self.assertEqual(str(cm.exception),
-                'need 0 <= size <= 400; got {}'.format(bad)
-            )
-            self.assertEqual(sock._calls, [('recv_into', 400)])
-
-    def test_send_once(self):
-        src = os.urandom(400)
-        view = memoryview(src)
-
-        sock = MockSocket(400)
-        self.assertEqual(ipc._send_once(sock, view), 400)
-        self.assertEqual(sock._calls, [('send', src)])
-
-        sock = MockSocket(160)
-        self.assertEqual(ipc._send_once(sock, view), 160)
-        self.assertEqual(sock._calls, [('send', src)])
-
-        sock = MockSocket(0)
-        self.assertEqual(ipc._send_once(sock, view), 0)
-        self.assertEqual(sock._calls, [('send', src)])
-
-        # Bad size type:
-        for bad in [UserInt(17), 17.0]:
-            sock = MockSocket(bad)
-            with self.assertRaises(TypeError) as cm:
-                ipc._send_once(sock, view)
-            self.assertEqual(str(cm.exception),
-                'size: need a {!r}; got a {!r}'.format(int, type(bad))
-            )
-            self.assertEqual(sock._calls, [('send', src)])
-
-        # Bad size value:
-        for bad in [-1, len(src) + 1]:
-            sock = MockSocket(bad)
-            with self.assertRaises(ValueError) as cm:
-                ipc._send_once(sock, view)
-            self.assertEqual(str(cm.exception),
-                'need 0 <= size <= 400; got {}'.format(bad)
-            )
-            self.assertEqual(sock._calls, [('send', src)])
-
-    def test_send(self):
-        src = os.urandom(400)
-
-        sock = MockSocket(400)
-        self.assertEqual(ipc._send(sock, src), 400)
-        self.assertEqual(sock._calls, [('send', src)])
-
-        sock = MockSocket(160, 240)
-        self.assertEqual(ipc._send(sock, src), 400)
-        self.assertEqual(sock._calls,
-            [('send', src), ('send', src[160:400])]
-        )
-
-        # Total size does not add up:
-        sock = MockSocket(200, 199, 0)
-        with self.assertRaises(ValueError) as cm:
-            ipc._send(sock, src)
-        self.assertEqual(str(cm.exception),
-            'expected to send 400 bytes, but sent 399'
-        )
-        self.assertEqual(sock._calls,
-            [('send', src), ('send', src[200:400]), ('send', src[399:400])]
-        )
-
-        # Bad size type:
-        for bad in [UserInt(17), 17.0]:
-            sock = MockSocket(bad)
-            with self.assertRaises(TypeError) as cm:
-                ipc._send(sock, src)
-            self.assertEqual(str(cm.exception),
-                'size: need a {!r}; got a {!r}'.format(int, type(bad))
-            )
-            self.assertEqual(sock._calls, [('send', src)])
-
-        # Bad size value:
-        for bad in [-1, len(src) + 1]:
-            sock = MockSocket(bad)
-            with self.assertRaises(ValueError) as cm:
-                ipc._send(sock, src)
-            self.assertEqual(str(cm.exception),
-                'need 0 <= size <= 400; got {}'.format(bad)
-            )
-            self.assertEqual(sock._calls, [('send', src)])
-
-
 class TestServer(TestCase):
     def test_init(self):
         sock = MockSocket()
         server = ipc.Server(sock, 96, 400)
         self.assertIs(server.sock, sock)
         self.assertEqual(server.sizes, (96, 400))
-        self.assertIsInstance(server.dst, memoryview)
+        self.assertEqual(server.max_size, 400)
 
     def test_read_request(self):
         server = ipc.Server(None, 96, 224, 400)
@@ -334,7 +160,16 @@ class MockDisplayManager:
 
 
 def _build_display_server(sock):
-    return ipc.DisplayServer(MockDisplayManager(), sock)
+    return ipc.DisplayServer(sock, MockDisplayManager())
+
+
+class MockClient:
+    def make_request(self, request):
+        pass
+
+
+def _build_private_server(sock):
+    return ipc.PrivateServer(sock, MockClient(), Signer())
 
 
 class TestLiveIPC(TestCase):
@@ -347,4 +182,26 @@ class TestLiveIPC(TestCase):
         for request in [s.genesis, signed1, signed2]:
             digest = hashlib.sha384(request).digest()
             self.assertEqual(client.make_request(request), digest)
+
+    def test_private_ipc(self):
+        server = TempServer(_build_private_server)        
+        client = ipc.PrivateClient(server.filename)
+        s = Signer()
+
+        a1 = s.sign(random_u64(), os.urandom(48))
+        b1 = client.make_request(a1)
+        self.assertIs(type(b1), bytes)
+        self.assertEqual(len(b1), 400)
+        self.assertEqual(b1[176:], a1)
+        self.assertEqual(verify.get_counter(b1), 1)
+
+        a2 = s.sign(random_u64(), os.urandom(48))
+        b2 = client.make_request(a2)
+        self.assertIs(type(b2), bytes)
+        self.assertEqual(len(b2), 400)
+        self.assertEqual(b2[176:], a2)
+        self.assertEqual(verify.get_counter(b2), 2)
+
+        self.assertNotEqual(b1[:176], b2[:176])
+        self.assertEqual(verify.get_pubkey(b1), verify.get_pubkey(b2))
 

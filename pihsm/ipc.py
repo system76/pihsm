@@ -32,63 +32,8 @@ def open_activated_socket(fd=3):
     return sock
 
 
-def _validate_size(size, max_size):
-    assert type(max_size) is int and max_size > 0
-    if type(size) is not int:
-        raise TypeError(
-            'size: need a {!r}; got a {!r}'.format(int, type(size))
-        )
-    if not (0 <= size <= max_size):
-        raise ValueError(
-            'need 0 <= size <= {}; got {}'.format(max_size, size)
-        )
-    return size
-
-
-def _recv_into_once(sock, dst):
-    assert type(dst) is memoryview
-    max_size = len(dst)
-    size = sock.recv_into(dst)
-    return _validate_size(size, max_size)
-
-
-def _recv_into(sock, dst):
-    start = 0
-    stop = len(dst)
-    while start < stop:
-        received = _recv_into_once(sock, dst[start:])
-        if received == 0:
-            break
-        start += received
-    return start
-
-
-def _send_once(sock, src):
-    assert type(src) is memoryview
-    max_size = len(src)
-    size = sock.send(src)
-    return _validate_size(size, max_size)
-
-
-def _send(sock, src):
-    assert type(src) is bytes and len(src) > 0
-    src = memoryview(src)
-    start = 0
-    stop = len(src)
-    while start < stop:
-        sent = _send_once(sock, src[start:])
-        if sent == 0:
-            break
-        start += sent
-    if start != stop:
-        raise ValueError(
-            'expected to send {} bytes, but sent {}'.format(stop, start)
-        )
-    return start
-
-
 class Server:
-    __slots__ = ('sock', 'sizes', 'max_size', 'dst')
+    __slots__ = ('sock', 'sizes', 'max_size')
 
     def __init__(self, sock, *sizes):
         for s in sizes:
@@ -96,7 +41,6 @@ class Server:
         self.sock = sock
         self.sizes = sizes
         self.max_size = max(sizes)
-        self.dst = memoryview(bytearray(max(sizes)))
 
     def serve_forever(self):
         while True:
@@ -107,14 +51,13 @@ class Server:
                 log.info('%s byte request', len(request))
                 response = self.handle_request(request)
                 log.info('%s byte response', len(response))
-                _send(sock, response)
+                sock.send(response)
             except:
                 log.exception('Error handling request:')
             finally:
                 sock.close()
 
     def read_request(self, sock):
-        log.info('Reading request from connection %r', sock)
         request = sock.recv(self.max_size)
         size = len(request)
         if size not in self.sizes:
@@ -147,7 +90,7 @@ class PrivateServer(Server):
 class DisplayServer(Server):
     __slots__ = ('manager',)
 
-    def __init__(self, manager, sock):
+    def __init__(self, sock, manager):
         super().__init__(sock, 96, 400)
         self.manager = manager
 
@@ -158,11 +101,11 @@ class DisplayServer(Server):
 
 
 class Client:
-    __slots__ = ('filename', 'dst')
+    __slots__ = ('filename', 'response_size')
 
     def __init__(self, filename, response_size):
         self.filename = filename
-        self.dst = memoryview(bytearray(response_size))
+        self.response_size = response_size
 
     def connect(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -170,34 +113,44 @@ class Client:
         sock.connect(self.filename)
         return sock
 
-    def make_request(self, request):
+    def _make_request(self, request):
         sock = self.connect()
         try:
-            _send(sock, request)
-            size = _recv_into(sock, self.dst)
-            if size != len(self.dst):
+            sock.send(request)
+            response = sock.recv(self.response_size)
+            if len(response) != self.response_size:
                 raise ValueError(
                     'bad response size: expected {}; got {}'.format(
-                        len(self.dst), size
+                        self.response_size, len(response)
                     )
                 )
-            return self.dst.tobytes()
+            return response
         finally:
             sock.close()
 
 
 class DisplayClient(Client):
+    __slots__ = tuple()
+
     def __init__(self, filename='/run/pihsm/display.socket'):
         super().__init__(filename, 48)
 
     def make_request(self, request):
         digest = sha384(request).digest()
-        response = super().make_request(request)
+        response = self._make_request(request)
         assert response == digest
         return response
 
 
 class PrivateClient(Client):
+    __slots__ = tuple()
+
     def __init__(self, filename='/run/pihsm/private.socket'):
         super().__init__(filename, 400)
+
+    def make_request(self, request):
+        response = self._make_request(request)
+        verify_message(response)
+        assert response.endswith(request)
+        return response
 
