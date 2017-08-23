@@ -18,8 +18,8 @@
 import logging
 import time
 import socket
-from hashlib import sha384
 
+from .common import compute_digest
 from .verify import verify_message
 
 
@@ -47,17 +47,13 @@ class Server:
             (sock, address) = self.sock.accept()
             try:
                 sock.settimeout(1)
-                request = self.read_request(sock)
-                log.info('%s byte request', len(request))
-                response = self.handle_request(request)
-                log.info('%s byte response', len(response))
-                sock.send(response)
+                self.handle_connection(sock)
             except:
                 log.exception('Error handling request:')
             finally:
                 sock.close()
 
-    def read_request(self, sock):
+    def handle_connection(self, sock):
         request = sock.recv(self.max_size)
         size = len(request)
         if size not in self.sizes:
@@ -65,12 +61,14 @@ class Server:
                 'bad request size {!r} not in {!r}'.format(size, self.sizes)
             )
         verify_message(request)
-        return request
+        log.info('%s byte request', len(request))
+
+        response = self.handle_request(request)
+        log.info('%s byte response', len(response))
+        sock.send(response)
 
     def handle_request(self, request):
-        raise NotImplementedError(
-            '%s.handle_request(request)'.format(self.__class__.__name__)
-        )
+        return compute_digest(request)
 
 
 class PrivateServer(Server):
@@ -96,8 +94,7 @@ class DisplayServer(Server):
 
     def handle_request(self, request):
         self.manager.update_screens(request)
-        d = sha384(request).digest()
-        return d
+        return compute_digest(request)
 
 
 class Client:
@@ -136,7 +133,7 @@ class DisplayClient(Client):
         super().__init__(filename, 48)
 
     def make_request(self, request):
-        digest = sha384(request).digest()
+        digest = compute_digest(request)
         response = self._make_request(request)
         assert response == digest
         return response

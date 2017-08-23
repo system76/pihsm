@@ -17,22 +17,15 @@
 from unittest import TestCase
 import os
 import socket
-import hashlib
-import logging
 
 from nacl.exceptions import BadSignatureError
 
 from .helpers import random_u64, iter_permutations, TempDir
 from ..sign import Signer
+from ..common import compute_digest
 from .. import verify
 from  .. import ipc
 
-
-log = logging.getLogger(__name__)
-
-
-class UserInt(int):
-    pass
 
 
 class MockSocket:
@@ -44,18 +37,9 @@ class MockSocket:
         self._calls.append(('recv', size))
         return self._returns.pop(0)
 
-    def recv_into(self, dst):
-        self._calls.append(('recv_into', len(dst)))
-        ret = self._returns.pop(0)
-        if type(ret) is bytes:
-            size = len(ret)
-            dst[0:size] = ret
-            return size
-        return ret
-
     def send(self, src):
-        self._calls.append(('send', src.tobytes()))
-        return self._returns.pop(0)
+        self._calls.append(('send', src))
+        return len(src)
 
 
 class TestServer(TestCase):
@@ -66,27 +50,29 @@ class TestServer(TestCase):
         self.assertEqual(server.sizes, (96, 400))
         self.assertEqual(server.max_size, 400)
 
-    def test_read_request(self):
+    def test_handle_connection(self):
         server = ipc.Server(None, 96, 224, 400)
 
         # Bad request size:
-        for bad in [0, 1, 95, 97, 223, 225, 399]:
+        for bad in [0, 1, 95, 97, 223, 225, 399, 401]:
             sock = MockSocket(os.urandom(bad))
             with self.assertRaises(ValueError) as cm:
-                server.read_request(sock)
+                server.handle_connection(sock)
             self.assertEqual(str(cm.exception),
                 'bad request size {!r} not in (96, 224, 400)'.format(bad)
             )
+            self.assertEqual(sock._calls, [('recv', 400)])
 
         # Bad signature:
         for size in server.sizes:
             bad = os.urandom(size)
-            sock = MockSocket(bad, 0)
+            sock = MockSocket(bad)
             with self.assertRaises(BadSignatureError) as cm:
-                server.read_request(sock)
+                server.handle_connection(sock)
             self.assertEqual(str(cm.exception),
                 'Signature was forged or corrupt',
             )
+            self.assertEqual(sock._calls, [('recv', 400)])
 
         # Good signature:
         s = Signer()
@@ -95,21 +81,23 @@ class TestServer(TestCase):
         signed2 = s.sign(random_u64(), os.urandom(48))
         for good in [genesis, signed1, signed2]:
             self.assertIn(len(good), server.sizes)
-            sock = MockSocket(good, 0)
-            self.assertEqual(server.read_request(sock), good)
+            sock = MockSocket(good)
+            self.assertIsNone(server.handle_connection(sock), good)
+            self.assertEqual(sock._calls,
+                [('recv', 400), ('send', compute_digest(good))]
+            )
 
             # But should still fail under any permutation:
             for permutation in iter_permutations(good):
                 sock = MockSocket(permutation, 0)
                 with self.assertRaises(BadSignatureError) as cm:
-                    server.read_request(sock)
+                    server.handle_connection(sock)
                 self.assertEqual(str(cm.exception),
                     'Signature was forged or corrupt',
                 )
 
 
 def _run_server(queue, filename, build_func, *build_args):
-    log.error('_run_server: %r', filename)
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.bind(filename)
@@ -180,7 +168,7 @@ class TestLiveIPC(TestCase):
         signed1 = s.sign(random_u64(), os.urandom(224))
         signed2 = s.sign(random_u64(), os.urandom(224))
         for request in [s.genesis, signed1, signed2]:
-            digest = hashlib.sha384(request).digest()
+            digest = compute_digest(request)
             self.assertEqual(client.make_request(request), digest)
 
     def test_private_ipc(self):
