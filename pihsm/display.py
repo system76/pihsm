@@ -166,7 +166,7 @@ def _mk_signature_lines(sig, i, template):
     half = sig[start:stop]
     s = b32encode(half).decode()
     return (
-        template.format(i + 1).center(20),
+        template.format(i).center(20),
         s[0:20],
         s[20:40],
         s[40:56].ljust(20),
