@@ -20,12 +20,10 @@ __version__ = '0.0.1'
 
 def configure_logging(name):
     import logging
-    
+
     _format = '\t'.join([
         '%(levelname)s',
         '%(message)s',
-        '%(processName)s',
-        '%(threadName)s',
     ])
     logging.basicConfig(
         level=logging.INFO,

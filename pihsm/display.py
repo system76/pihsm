@@ -39,8 +39,8 @@
 
 import time
 import threading
-from base64 import b32encode
 
+from .common import b32enc
 from .verify import get_signature, get_pubkey, get_counter
 from .sign import get_entropy_avail
 
@@ -149,7 +149,7 @@ def _mk_time_and_counter_lines(counter):
 
 def _mk_pubkey_lines(pubkey):
     assert type(pubkey) is bytes and len(pubkey) == 32
-    p = b32encode(pubkey).decode()
+    p = b32enc(pubkey)
     return (
         'Public Key:'.center(20),
         p[0:20],
@@ -164,7 +164,7 @@ def _mk_signature_lines(sig, i, template):
     start = i * 32
     stop = start + 32
     half = sig[start:stop]
-    s = b32encode(half).decode()
+    s = b32enc(half)
     return (
         template.format(i).center(20),
         s[0:20],

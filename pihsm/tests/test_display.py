@@ -15,10 +15,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from unittest import TestCase
-from base64 import b32encode
 import os
 
 from .helpers import random_u64
+from ..common import b32enc
 from  .. import display
 
 
@@ -42,22 +42,22 @@ class TestFunctions(TestCase):
             '    Public Key:     ',
             'AAAAAAAAAAAAAAAAAAAA',
             'AAAAAAAAAAAAAAAAAAAA',
-            'AAAAAAAAAAAA====    ',
+            'AAAAAAAAAAAA        ',
         ))
         pubkey = b'\xFF' * 32
         self.assertEqual(display._mk_pubkey_lines(pubkey), (
             '    Public Key:     ',
             '77777777777777777777',
             '77777777777777777777',
-            '77777777777Q====    ',
+            '77777777777Q        ',
         ))
         pubkey = os.urandom(32)
-        b32 = b32encode(pubkey).decode()
+        b32 = b32enc(pubkey)
         self.assertEqual(display._mk_pubkey_lines(pubkey), (
             '    Public Key:     ',
             b32[0:20],
             b32[20:40],
-            b32[40:56] + '    ',
+            b32[40:52] + (' ' * 8),
         ))
 
     def test_mk_signature_screens(self):
@@ -70,13 +70,13 @@ class TestFunctions(TestCase):
                 'Tail.0:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA====    ',
+                'AAAAAAAAAAAA        ',
             ),
             (
                 'Tail.1:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q====    ',
+                '77777777777Q        ',
             ),
         ))
         sig = s2 + s1
@@ -85,31 +85,31 @@ class TestFunctions(TestCase):
                 'Tail.0:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q====    ',
+                '77777777777Q        ',
             ),
             (
                 'Tail.1:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA====    ',
+                'AAAAAAAAAAAA        ',
             ),
         ))
 
         sig = os.urandom(64)
-        b1 = b32encode(sig[:32]).decode()
-        b2 = b32encode(sig[32:]).decode()
+        b1 = b32enc(sig[:32])
+        b2 = b32enc(sig[32:])
         self.assertEqual(display._mk_signature_screens(sig), (
             (
                 'Tail.0:'.center(20),
                 b1[0:20],
                 b1[20:40],
-                b1[40:] + '    ',
+                b1[40:] + (' ' * 8),
             ),
             (
                 'Tail.1:'.center(20),
                 b2[0:20],
                 b2[20:40],
-                b2[40:] + '    ',
+                b2[40:] + (' ' * 8),
             ),
         ))
 
@@ -123,13 +123,13 @@ class TestFunctions(TestCase):
                 'Genesis.0:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA====    ',
+                'AAAAAAAAAAAA        ',
             ),
             (
                 'Genesis.1:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q====    ',
+                '77777777777Q        ',
             ),
         ))
         sig = s2 + s1
@@ -138,31 +138,31 @@ class TestFunctions(TestCase):
                 'Genesis.0:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q====    ',
+                '77777777777Q        ',
             ),
             (
                 'Genesis.1:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA====    ',
+                'AAAAAAAAAAAA        ',
             ),
         ))
 
         sig = os.urandom(64)
-        b1 = b32encode(sig[:32]).decode()
-        b2 = b32encode(sig[32:]).decode()
+        b1 = b32enc(sig[:32])
+        b2 = b32enc(sig[32:])
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
                 'Genesis.0:'.center(20),
                 b1[0:20],
                 b1[20:40],
-                b1[40:] + '    ',
+                b1[40:] + (' ' * 8),
             ),
             (
                 'Genesis.1:'.center(20),
                 b2[0:20],
                 b2[20:40],
-                b2[40:] + '    ',
+                b2[40:] + (' ' * 8),
             ),
         ))
 

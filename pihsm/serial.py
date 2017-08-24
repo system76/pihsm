@@ -17,6 +17,7 @@
 
 import logging
 
+from .common import b32enc
 from .verify import isvalid, get_pubkey
 
 
@@ -38,7 +39,7 @@ def read_serial(ttl, size):
         return None
     if isvalid(msg):
         return msg
-    log.warning('bad signature from pubkey %s', get_pubkey(msg).hex())
+    log.warning('bad signature from pubkey %s', b32enc(get_pubkey(msg)))
     return None
 
 
