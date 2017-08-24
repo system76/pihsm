@@ -18,7 +18,7 @@
 from unittest import TestCase
 import os
 
-from .helpers import random_u64, iter_permutations
+from .helpers import iter_permutations
 from ..sign import Signer
 from .. import serial
 
@@ -66,7 +66,7 @@ class TestFunctions(TestCase):
             # Good signature:
             s = Signer()
             msg = os.urandom(size - 176)
-            signed = s.sign(random_u64(), msg)
+            signed = s.sign(msg)
             self.assertEqual(len(signed), size)
             ttl = MockSerial(signed)
             self.assertEqual(serial.read_serial(ttl, size), signed)

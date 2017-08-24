@@ -75,9 +75,9 @@ class TestFunctions(TestCase):
 
     def test_repack(self):
         s = Signer()
-        ts = random_u64()
         msg = os.urandom(48)
-        signed = s.sign(ts, msg)
+        ts = random_u64()
+        signed = s.sign(msg, ts)
         node = verify.verify_and_unpack(signed)
         self.assertEqual(verify.repack(node), signed)
 

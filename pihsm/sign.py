@@ -74,7 +74,8 @@ class Signer:
             self.public, self.previous, self.counter, timestamp, message
         )
 
-    def sign(self, timestamp, message):
+    def sign(self, message, timestamp=None):
+        timestamp = (get_time() if timestamp is None else timestamp)
         self.counter += 1
         sm = self.key.sign(self.build_signing_form(timestamp, message))
         self.previous = sm.signature

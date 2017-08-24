@@ -40,6 +40,7 @@ class TestNamedTuples(TestCase):
         self.assertIs(args[3], t.counter)
         self.assertIs(args[4], t.timestamp)
         self.assertIs(args[5], t.message)
+        self.assertEqual(t, args)
 
 
 class TestConstants(TestCase):

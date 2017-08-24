@@ -20,7 +20,7 @@ import socket
 
 from nacl.exceptions import BadSignatureError
 
-from .helpers import random_u64, iter_permutations, TempDir
+from .helpers import iter_permutations, TempDir
 from ..sign import Signer
 from ..common import compute_digest
 from .. import verify
@@ -77,8 +77,8 @@ class TestServer(TestCase):
         # Good signature:
         s = Signer()
         genesis = s.genesis
-        signed1 = s.sign(random_u64(), os.urandom(224))
-        signed2 = s.sign(random_u64(), os.urandom(48))
+        signed1 = s.sign(os.urandom(224))
+        signed2 = s.sign(os.urandom(48))
         for good in [genesis, signed1, signed2]:
             self.assertIn(len(good), server.sizes)
             sock = MockSocket(good)
@@ -165,8 +165,8 @@ class TestLiveIPC(TestCase):
         server = TempServer(_build_display_server)
         client = ipc.DisplayClient(server.filename)
         s = Signer()
-        signed1 = s.sign(random_u64(), os.urandom(224))
-        signed2 = s.sign(random_u64(), os.urandom(224))
+        signed1 = s.sign(os.urandom(224))
+        signed2 = s.sign(os.urandom(224))
         for request in [s.genesis, signed1, signed2]:
             digest = compute_digest(request)
             self.assertEqual(client.make_request(request), digest)
@@ -176,14 +176,14 @@ class TestLiveIPC(TestCase):
         client = ipc.PrivateClient(server.filename)
         s = Signer()
 
-        a1 = s.sign(random_u64(), os.urandom(48))
+        a1 = s.sign(os.urandom(48))
         b1 = client.make_request(a1)
         self.assertIs(type(b1), bytes)
         self.assertEqual(len(b1), 400)
         self.assertEqual(b1[176:], a1)
         self.assertEqual(verify.get_counter(b1), 1)
 
-        a2 = s.sign(random_u64(), os.urandom(48))
+        a2 = s.sign(os.urandom(48))
         b2 = client.make_request(a2)
         self.assertIs(type(b2), bytes)
         self.assertEqual(len(b2), 400)

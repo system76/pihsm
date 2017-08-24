@@ -16,7 +16,6 @@
 
 
 import logging
-import time
 import socket
 
 from .common import compute_digest
@@ -80,7 +79,7 @@ class PrivateServer(Server):
         self.display_client = display_client
 
     def handle_request(self, request):
-        signed = self.signer.sign(int(time.time()), request)
+        signed = self.signer.sign(request)
         self.display_client.make_request(signed)
         return signed
 
