@@ -1,7 +1,11 @@
 PiHSM
 =====
 
-`PiHSM`_ turns your Raspberry Pi into a Hardware Security Module, specifically
+`PiHSM`_ turns your Raspberry Pi into a Hardware Security Module (HSM),
+specifically a signing server using the Ed25519 elliptic curve signature
+algorithm.
+
+A properly configured `PiHSM`_ device is itself a truly offline HSM.
 
 
 Contents:

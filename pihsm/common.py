@@ -14,7 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from collections import namedtuple
 from hashlib import sha384
+from base64 import b32encode
+
+
+Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp message')
 
 
 SIGNATURE = 64
@@ -28,6 +33,81 @@ PREFIX = GENESIS + SIGNATURE + COUNTER + TIMESTAMP
 DIGEST = 48
 REQUEST = PREFIX + DIGEST
 RESPONSE = PREFIX + REQUEST
+
+
+def get_signature(signed):
+    assert type(signed) is bytes and len(signed) >= GENESIS
+    sig = signed[0:64]
+    assert len(sig) == SIGNATURE
+    return sig
+
+
+def get_pubkey(signed):
+    assert type(signed) is bytes and len(signed) >= GENESIS
+    pubkey = signed[64:96]
+    assert len(pubkey) == PUBKEY
+    return pubkey
+
+
+def get_previous(signed):
+    assert type(signed) is bytes and len(signed) >= PREFIX
+    previous = signed[96:160]
+    assert len(previous) == SIGNATURE
+    return previous
+
+
+def get_counter(signed):
+    assert type(signed) is bytes and len(signed) >= PREFIX
+    counter = signed[160:168]
+    assert len(counter) == COUNTER
+    return int.from_bytes(counter, 'little')
+
+
+def get_timestamp(signed):
+    assert type(signed) is bytes and len(signed) >= PREFIX
+    timestamp = signed[168:176]
+    assert len(timestamp) == TIMESTAMP
+    return int.from_bytes(timestamp, 'little')
+
+
+def get_message(signed):
+    assert type(signed) is bytes and len(signed) >= PREFIX
+    return signed[PREFIX:]
+
+
+def unpack_signed(d):
+    return Signed(
+        get_signature(d),
+        get_pubkey(d),
+        get_previous(d),
+        get_counter(d),
+        get_timestamp(d),
+        get_message(d),
+    )
+
+
+def pack_signed(s):
+    return b''.join([
+        s.signature,
+        s.pubkey,
+        s.previous,
+        s.counter.to_bytes(COUNTER, 'little'),
+        s.timestamp.to_bytes(TIMESTAMP, 'little'),
+        s.message,
+    ])
+
+
+def encode_pubkey(pubkey):
+    assert len(pubkey) == PUBKEY
+    return b32encode(pubkey).decode()
+
+
+def encode_signature(signature):
+    assert len(signature) == SIGNATURE
+    return (
+        encode_pubkey(signature[:32]),
+        encode_pubkey(signature[32:]),
+    )
 
 
 def compute_digest(data):
