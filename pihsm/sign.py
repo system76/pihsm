@@ -56,7 +56,7 @@ def build_signing_form(public, previous, counter, timestamp, message):
         counter.to_bytes(8, 'little'),
         timestamp.to_bytes(8, 'little'),
         message,
-    ])
+    ])        
 
 
 class Signer:

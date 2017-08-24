@@ -17,6 +17,8 @@
 from collections import namedtuple
 from hashlib import sha384
 from base64 import b32encode
+import os
+from os import path
 
 
 Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp message')
@@ -33,6 +35,9 @@ PREFIX = GENESIS + SIGNATURE + COUNTER + TIMESTAMP
 DIGEST = 48
 REQUEST = PREFIX + DIGEST
 RESPONSE = PREFIX + REQUEST
+
+SIZES = (GENESIS, REQUEST, RESPONSE)
+MAX_SIZE = max(SIZES)
 
 
 def get_signature(signed):
@@ -120,4 +125,37 @@ def compute_digest(data):
             'data: cannot provide empty bytes'
         )
     return sha384(data).digest()
+
+
+class SignatureStore:
+    def __init__(self, basedir):
+        self.basedir = basedir
+
+    def build_dirname(self, pubkey):
+        assert type(pubkey) is bytes and len(pubkey) == 32
+        return path.join(self.basedir, pubkey.hex())
+
+    def build_filename(self, pubkey, signature):
+        assert type(pubkey) is bytes and len(pubkey) == 32
+        assert type(signature) is bytes and len(signature) == 64
+        return path.join(self.basedir, pubkey.hex(), signature.hex())
+
+    def read(self, pubkey, signature):
+        filename = self.build_filename(pubkey, signature)
+        with open(filename, 'rb', 0) as fp:
+            return fp.read(MAX_SIZE)
+
+    def write(self, signed):
+        pubkey = get_pubkey(signed)
+        dirname = self.build_dirname(pubkey)
+        try:
+            os.mkdir(dirname)
+        except FileExistsError:
+            pass
+        signature = get_signature(signed)
+        filename = self.build_filename(pubkey, signature)
+        with open(filename, 'xb', 0) as fp:
+            fp.write(signed)
+            fp.flush()
+            os.fsync(fp.fileno())
 

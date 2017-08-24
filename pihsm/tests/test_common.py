@@ -16,10 +16,11 @@
 
 from unittest import TestCase
 import os
+from os import path
 import hashlib
 from base64 import b32encode
 
-from .helpers import random_u64
+from .helpers import random_u64, TempDir
 from .. import common
 
 
@@ -90,6 +91,20 @@ class TestConstants(TestCase):
         self.assertEqual(common.RESPONSE,
             common.PREFIX + common.REQUEST
         )
+
+    def test_SIZES(self):
+        self.assertIs(type(common.SIZES), tuple)
+        for item in common.SIZES:
+            self.assertIs(type(item), int)
+            self.assertGreaterEqual(item, common.GENESIS)
+        self.assertEqual(len(common.SIZES), len(set(common.SIZES)))
+        self.assertEqual(common.SIZES,
+            (common.GENESIS, common.REQUEST, common.RESPONSE)
+        )
+
+    def test_MAX_SIZE(self):
+        self.assertIs(type(common.MAX_SIZE), int)
+        self.assertEqual(common.MAX_SIZE, max(common.SIZES))
 
 
 class TestFunctions(TestCase):
@@ -260,4 +275,102 @@ class TestFunctions(TestCase):
             self.assertEqual(common.compute_digest(good),
                 hashlib.sha384(good).digest()
             )
+
+
+class TestSignatureStore(TestCase):
+    def test_init(self):
+        tmp = TempDir()
+        store = common.SignatureStore(tmp.dir)
+        self.assertIs(store.basedir, tmp.dir)
+        self.assertEqual(tmp.listdir(), [])
+
+    def test_build_dirname(self):
+        tmp = TempDir()
+        store = common.SignatureStore(tmp.dir)
+        pubkey = os.urandom(common.PUBKEY)
+        self.assertEqual(store.build_dirname(pubkey),
+            tmp.join(pubkey.hex())
+        )
+        self.assertEqual(tmp.listdir(), [])
+
+    def test_build_filename(self):
+        tmp = TempDir()
+        store = common.SignatureStore(tmp.dir)
+        pubkey = os.urandom(common.PUBKEY)
+        signature = os.urandom(common.SIGNATURE)
+        filename = store.build_filename(pubkey, signature)
+        self.assertEqual(filename,
+            tmp.join(pubkey.hex(), signature.hex())
+        )
+        self.assertEqual(filename,
+            path.join(store.build_dirname(pubkey), signature.hex())
+        )
+        self.assertEqual(tmp.listdir(), [])
+
+    def test_read(self):
+        tmp = TempDir()
+        store = common.SignatureStore(tmp.dir)
+        pubkey = os.urandom(common.PUBKEY)
+        signature = os.urandom(common.SIGNATURE)
+        filename = store.build_filename(pubkey, signature)
+
+        # Directory does not exist:
+        with self.assertRaises(FileNotFoundError) as cm:            
+            store.read(pubkey, signature)
+        self.assertEqual(str(cm.exception),
+            '[Errno 2] No such file or directory: {!r}'.format(filename)
+        )
+        self.assertEqual(tmp.listdir(), [])
+
+        # File does not exist:
+        tmp.mkdir(pubkey.hex())
+        with self.assertRaises(FileNotFoundError) as cm:            
+            store.read(pubkey, signature)
+        self.assertEqual(str(cm.exception),
+            '[Errno 2] No such file or directory: {!r}'.format(filename)
+        )
+        self.assertEqual(tmp.listdir(), [pubkey.hex()])
+        self.assertEqual(tmp.listdir(pubkey.hex()), [])
+
+        # File exists, but remember content is not checked!
+        content = os.urandom(16)
+        tmp.write(content, pubkey.hex(), signature.hex())
+        self.assertEqual(store.read(pubkey, signature), content)
+        self.assertEqual(tmp.listdir(), [pubkey.hex()])
+        self.assertEqual(tmp.listdir(pubkey.hex()), [signature.hex()])
+
+    def test_write(self):
+        for size in common.SIZES:
+            tmp = TempDir()
+            store = common.SignatureStore(tmp.dir)
+            pub = os.urandom(common.PUBKEY)
+            sig = os.urandom(common.SIGNATURE)
+            filename = tmp.join(pub.hex(), sig.hex())   
+            signed = sig + pub + os.urandom(size - common.GENESIS)
+            self.assertIsNone(store.write(signed))
+            self.assertEqual(tmp.listdir(), [pub.hex()])
+            self.assertEqual(tmp.listdir(pub.hex()), [sig.hex()])
+            self.assertEqual(store.read(pub, sig), signed)
+
+            # Make sure file in opened in 'xb' mode:
+            with self.assertRaises(FileExistsError) as cm:
+                store.write(signed)
+            self.assertEqual(str(cm.exception),
+                '[Errno 17] File exists: {!r}'.format(filename)
+            ) 
+            self.assertEqual(tmp.listdir(), [pub.hex()])
+            self.assertEqual(tmp.listdir(pub.hex()), [sig.hex()])
+            self.assertEqual(store.read(pub, sig), signed)              
+
+            # Should work if pub.hex() directory already exists:
+            sig2 = os.urandom(common.SIGNATURE)
+            signed2 = sig2 + pub + os.urandom(size - common.GENESIS)
+            self.assertIsNone(store.write(signed2))
+            self.assertEqual(tmp.listdir(), [pub.hex()])
+            self.assertEqual(tmp.listdir(pub.hex()),
+                sorted([sig.hex(), sig2.hex()])
+            )
+            self.assertEqual(store.read(pub, sig), signed)
+            self.assertEqual(store.read(pub, sig2), signed2)
+
 
