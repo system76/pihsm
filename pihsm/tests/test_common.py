@@ -21,6 +21,7 @@ import hashlib
 from base64 import b32encode
 
 from .helpers import random_u64, TempDir
+from ..common import b32enc
 from .. import common
 
 
@@ -197,53 +198,70 @@ class TestFunctions(TestCase):
                 ])
             )
 
-    def test_encode_pubkey(self):
-        # Static value test:
-        pk = b'\x00\xff' * 16
-        self.assertEqual(len(pk), common.PUBKEY)
-        self.assertEqual(common.encode_pubkey(pk),
-            'AD7QB7YA74AP6AH7AD7QB7YA74AP6AH7AD7QB7YA74AP6AH7AD7Q===='
-            
+    def test_b32enc(self):
+        self.assertEqual(
+            common.b32enc(b'\x00'),
+            'AA'
         )
-
-        # Random value test:
-        b = os.urandom(common.PUBKEY)
-        s = common.encode_pubkey(b)
-        self.assertIs(type(s), str)
-        self.assertEqual(len(s), 56)
-        self.assertEqual(s, b32encode(b).decode())
-
-    def test_encode_signature(self):
-        # Static value test:
-        sig = (b'\x00' * 32) + (b'\xff' * 32)
-        t = common.encode_signature(sig)
-        self.assertIs(type(t), tuple)
-        self.assertEqual(len(t), 2)
-        self.assertIs(type(t[0]), str)
-        self.assertEqual(len(t[0]), 56)
-        self.assertIs(type(t[1]), str)
-        self.assertEqual(len(t[1]), 56)
-        self.assertEqual(t,
-            (
-                'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA====',
-                '777777777777777777777777777777777777777777777777777Q====',
-            )
+        self.assertEqual(
+            common.b32enc(b'\x00' * 2),
+            'AAAA'
         )
-    
-        # Random value test:
-        b0 = os.urandom(common.SIGNATURE // 2)
-        b1 = os.urandom(common.SIGNATURE // 2)
-        t = common.encode_signature(b0 + b1)
-        self.assertIs(type(t), tuple)
-        self.assertEqual(len(t), 2)
+        self.assertEqual(
+            common.b32enc(b'\x00' * 3),
+            'AAAAA'
+        )
+        self.assertEqual(
+            common.b32enc(b'\x00' * 4),
+            'AAAAAAA'
+        )
+        self.assertEqual(
+            common.b32enc(b'\x00' * 5),
+            'AAAAAAAA'
+        )
+        for size in range(1, 65):
+            data = os.urandom(size)
+            b32 = b32encode(data).decode()
+            string = common.b32enc(data)
+            self.assertTrue(b32.startswith(string))
+            self.assertNotIn('=', string)
+            self.assertEqual(len(b32) % 8, 0)
+            self.assertLessEqual(len(string), len(b32))
+            self.assertEqual(common.b32dec(string), data)
 
-        self.assertIs(type(t[0]), str)
-        self.assertEqual(len(t[0]), 56)
-        self.assertEqual(t[0], b32encode(b0).decode())
+        # Round trip pubkey, signature:
+        for i in range(500):
+            pub = os.urandom(common.PUBKEY)
+            b32_pub = common.b32enc(pub)
+            self.assertEqual(len(b32_pub), 52)
+            self.assertEqual(common.b32dec(b32_pub), pub)
 
-        self.assertIs(type(t[1]), str)
-        self.assertEqual(len(t[1]), 56)
-        self.assertEqual(t[1], b32encode(b1).decode())
+            sig = os.urandom(common.SIGNATURE)
+            b32_sig = common.b32enc(sig)
+            self.assertEqual(len(b32_sig), 103)
+            self.assertEqual(common.b32dec(b32_sig), sig)
+
+    def test_b32dec(self):
+        self.assertEqual(
+            common.b32dec('AA'),
+            b'\x00'
+        )
+        self.assertEqual(
+            common.b32dec('AAAA'),
+            b'\x00' * 2
+        )
+        self.assertEqual(
+            common.b32dec('AAAAA'),
+            b'\x00' * 3
+        )
+        self.assertEqual(
+            common.b32dec('AAAAAAA'),
+            b'\x00' * 4
+        )
+        self.assertEqual(
+            common.b32dec('AAAAAAAA'),
+            b'\x00' * 5
+        )
 
     def test_compute_digest(self):
         good = b'System76'
@@ -289,7 +307,7 @@ class TestSignatureStore(TestCase):
         store = common.SignatureStore(tmp.dir)
         pubkey = os.urandom(common.PUBKEY)
         self.assertEqual(store.build_dirname(pubkey),
-            tmp.join(pubkey.hex())
+            tmp.join(b32enc(pubkey))
         )
         self.assertEqual(tmp.listdir(), [])
 
@@ -300,44 +318,44 @@ class TestSignatureStore(TestCase):
         signature = os.urandom(common.SIGNATURE)
         filename = store.build_filename(pubkey, signature)
         self.assertEqual(filename,
-            tmp.join(pubkey.hex(), signature.hex())
+            tmp.join(b32enc(pubkey), b32enc(signature))
         )
         self.assertEqual(filename,
-            path.join(store.build_dirname(pubkey), signature.hex())
+            path.join(store.build_dirname(pubkey), b32enc(signature))
         )
         self.assertEqual(tmp.listdir(), [])
 
     def test_read(self):
         tmp = TempDir()
         store = common.SignatureStore(tmp.dir)
-        pubkey = os.urandom(common.PUBKEY)
-        signature = os.urandom(common.SIGNATURE)
-        filename = store.build_filename(pubkey, signature)
+        pub = os.urandom(common.PUBKEY)
+        sig = os.urandom(common.SIGNATURE)
+        filename = store.build_filename(pub, sig)
 
         # Directory does not exist:
         with self.assertRaises(FileNotFoundError) as cm:            
-            store.read(pubkey, signature)
+            store.read(pub, sig)
         self.assertEqual(str(cm.exception),
             '[Errno 2] No such file or directory: {!r}'.format(filename)
         )
         self.assertEqual(tmp.listdir(), [])
 
         # File does not exist:
-        tmp.mkdir(pubkey.hex())
+        tmp.mkdir(b32enc(pub))
         with self.assertRaises(FileNotFoundError) as cm:            
-            store.read(pubkey, signature)
+            store.read(pub, sig)
         self.assertEqual(str(cm.exception),
             '[Errno 2] No such file or directory: {!r}'.format(filename)
         )
-        self.assertEqual(tmp.listdir(), [pubkey.hex()])
-        self.assertEqual(tmp.listdir(pubkey.hex()), [])
+        self.assertEqual(tmp.listdir(), [b32enc(pub)])
+        self.assertEqual(tmp.listdir(b32enc(pub)), [])
 
         # File exists, but remember content is not checked!
         content = os.urandom(16)
-        tmp.write(content, pubkey.hex(), signature.hex())
-        self.assertEqual(store.read(pubkey, signature), content)
-        self.assertEqual(tmp.listdir(), [pubkey.hex()])
-        self.assertEqual(tmp.listdir(pubkey.hex()), [signature.hex()])
+        tmp.write(content, b32enc(pub), b32enc(sig))
+        self.assertEqual(store.read(pub, sig), content)
+        self.assertEqual(tmp.listdir(), [b32enc(pub)])
+        self.assertEqual(tmp.listdir(b32enc(pub)), [b32enc(sig)])
 
     def test_write(self):
         for size in common.SIZES:
@@ -345,11 +363,11 @@ class TestSignatureStore(TestCase):
             store = common.SignatureStore(tmp.dir)
             pub = os.urandom(common.PUBKEY)
             sig = os.urandom(common.SIGNATURE)
-            filename = tmp.join(pub.hex(), sig.hex())   
+            filename = tmp.join(b32enc(pub), b32enc(sig))   
             signed = sig + pub + os.urandom(size - common.GENESIS)
             self.assertIsNone(store.write(signed))
-            self.assertEqual(tmp.listdir(), [pub.hex()])
-            self.assertEqual(tmp.listdir(pub.hex()), [sig.hex()])
+            self.assertEqual(tmp.listdir(), [b32enc(pub)])
+            self.assertEqual(tmp.listdir(b32enc(pub)), [b32enc(sig)])
             self.assertEqual(store.read(pub, sig), signed)
 
             # Make sure file in opened in 'xb' mode:
@@ -358,17 +376,17 @@ class TestSignatureStore(TestCase):
             self.assertEqual(str(cm.exception),
                 '[Errno 17] File exists: {!r}'.format(filename)
             ) 
-            self.assertEqual(tmp.listdir(), [pub.hex()])
-            self.assertEqual(tmp.listdir(pub.hex()), [sig.hex()])
+            self.assertEqual(tmp.listdir(), [b32enc(pub)])
+            self.assertEqual(tmp.listdir(b32enc(pub)), [b32enc(sig)])
             self.assertEqual(store.read(pub, sig), signed)              
 
-            # Should work if pub.hex() directory already exists:
+            # Should work if b32enc(pub) directory already exists:
             sig2 = os.urandom(common.SIGNATURE)
             signed2 = sig2 + pub + os.urandom(size - common.GENESIS)
             self.assertIsNone(store.write(signed2))
-            self.assertEqual(tmp.listdir(), [pub.hex()])
-            self.assertEqual(tmp.listdir(pub.hex()),
-                sorted([sig.hex(), sig2.hex()])
+            self.assertEqual(tmp.listdir(), [b32enc(pub)])
+            self.assertEqual(tmp.listdir(b32enc(pub)),
+                sorted([b32enc(sig), b32enc(sig2)])
             )
             self.assertEqual(store.read(pub, sig), signed)
             self.assertEqual(store.read(pub, sig2), signed2)

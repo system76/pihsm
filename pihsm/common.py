@@ -16,7 +16,7 @@
 
 from collections import namedtuple
 from hashlib import sha384
-from base64 import b32encode
+from base64 import b32encode, b32decode
 import os
 from os import path
 
@@ -102,17 +102,13 @@ def pack_signed(s):
     ])
 
 
-def encode_pubkey(pubkey):
-    assert len(pubkey) == PUBKEY
-    return b32encode(pubkey).decode()
+def b32enc(data):
+    return b32encode(data).decode().rstrip('=')
 
 
-def encode_signature(signature):
-    assert len(signature) == SIGNATURE
-    return (
-        encode_pubkey(signature[:32]),
-        encode_pubkey(signature[32:]),
-    )
+def b32dec(string):
+    pad = (8 - (len(string) % 8)) % 8
+    return b32decode(string + ('=' * pad))
 
 
 def compute_digest(data):
@@ -133,12 +129,12 @@ class SignatureStore:
 
     def build_dirname(self, pubkey):
         assert type(pubkey) is bytes and len(pubkey) == 32
-        return path.join(self.basedir, pubkey.hex())
+        return path.join(self.basedir, b32enc(pubkey))
 
     def build_filename(self, pubkey, signature):
         assert type(pubkey) is bytes and len(pubkey) == 32
         assert type(signature) is bytes and len(signature) == 64
-        return path.join(self.basedir, pubkey.hex(), signature.hex())
+        return path.join(self.basedir, b32enc(pubkey), b32enc(signature))
 
     def read(self, pubkey, signature):
         filename = self.build_filename(pubkey, signature)
