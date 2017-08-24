@@ -101,14 +101,14 @@ class LCD:
             self.lcd_byte(bits, LCD_CHR)
 
     def lcd_text_lines(self, *lines):
-        #self.lcd_clear()
+        self.lcd_clear()
         for (i, text) in enumerate(lines):
             if callable(text):
                 text = text()
             self.lcd_line(text.encode(), i)
 
     def lcd_screens(self, *screens):
-        delay = (1 if len(screens) < 2 else 3)
+        delay = 3
         for lines in screens:
             self.lcd_text_lines(*lines)
             time.sleep(delay)
