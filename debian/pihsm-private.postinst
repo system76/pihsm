@@ -4,7 +4,7 @@ case $1 in
     configure)
         if ! getent passwd pihsm-private > /dev/null; then
             adduser --system --quiet \
-                --home /var/lib/pihsm-private --no-create-home \
+                --home /var/lib/pihsm/private --no-create-home \
                 --shell /bin/bash --group --gecos "pihsm-private" pihsm-private
         fi
         if ! getent group pihsm-private-client > /dev/null; then
