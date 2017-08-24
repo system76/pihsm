@@ -373,4 +373,3 @@ class TestSignatureStore(TestCase):
             self.assertEqual(store.read(pub, sig), signed)
             self.assertEqual(store.read(pub, sig2), signed2)
 
-

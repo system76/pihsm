@@ -30,6 +30,8 @@ import time
 
 from nacl.signing import SigningKey
 
+from .common import get_signature
+
 
 log = logging.getLogger(__name__)
 
@@ -56,16 +58,23 @@ def build_signing_form(public, previous, counter, timestamp, message):
         counter.to_bytes(8, 'little'),
         timestamp.to_bytes(8, 'little'),
         message,
-    ])        
+    ])
+
+
+class DummyStore:
+    def write(self, signed):
+        pass      
 
 
 class Signer:
-    def __init__(self):
+    def __init__(self, store=None):
         self.key = SigningKey.generate()
         self.public = bytes(self.key.verify_key)
         self.genesis = bytes(self.key.sign(self.public))
         self.previous = self.genesis[0:64]
         self.counter = 0
+        self.store = (DummyStore() if store is None else store)
+        self.store.write(self.genesis)
         log.info('Public Key: %s', self.public.hex())
         log.info('Genesis Node: %s', self.previous.hex())
 
@@ -77,8 +86,9 @@ class Signer:
     def sign(self, message, timestamp=None):
         timestamp = (get_time() if timestamp is None else timestamp)
         self.counter += 1
-        sm = self.key.sign(self.build_signing_form(timestamp, message))
-        self.previous = sm.signature
-        log.debug('tail: %s, counter: %s', sm.signature.hex(), self.counter)
-        return bytes(sm)
+        signing_form = self.build_signing_form(timestamp, message)
+        signed = bytes(self.key.sign(signing_form))
+        self.previous = get_signature(signed)
+        self.store.write(signed)
+        return signed
 

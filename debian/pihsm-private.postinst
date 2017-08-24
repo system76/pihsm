@@ -11,6 +11,8 @@ case $1 in
             addgroup --system --quiet pihsm-private-client
         fi
         adduser pihsm-private pihsm-display-client --quiet
+        chmod 0770 /var/lib/pihsm/private
+        chown -R pihsm-private:pihsm-private /var/lib/pihsm/private
 esac
 
 #DEBHELPER#

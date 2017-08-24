@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pihsm
+from pihsm.common import SignatureStore
 from pihsm.sign import Signer
 from pihsm.ipc import open_activated_socket, PrivateServer, DisplayClient
 
@@ -25,7 +26,8 @@ log = pihsm.configure_logging(__name__)
 
 # Create private key, send genesis signature to display server:
 display_client = DisplayClient('/run/pihsm/display.socket')
-signer = Signer()
+store = SignatureStore('/var/lib/pihsm/private')
+signer = Signer(store)
 display_client.make_request(signer.genesis)
 
 # Open systemd activated AF_UNIX socket, setup IPC server:
