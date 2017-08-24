@@ -158,28 +158,29 @@ def _mk_pubkey_lines(pubkey):
     )
 
 
-def _mk_signature_lines(sig, i, template):
-    assert type(sig) is bytes and len(sig) == 64
-    assert type(i) is int and i in (0, 1)
-    start = i * 32
-    stop = start + 32
-    half = sig[start:stop]
-    s = b32enc(half)
+def _mk_signature_lines(b32_sig, name, start, stop):
+    assert type(b32_sig) is str and len(b32_sig) == 103
+    assert (start, stop) in [(0, 60), (60, 103)]
+    sub = b32_sig[start:stop]
+    assert 40 < len(sub) <= 60
     return (
-        template.format(i).center(20),
-        s[0:20],
-        s[20:40],
-        s[40:56].ljust(20),
+        '{}[{}:{}]:'.format(name, start, stop).center(20),
+        sub[0:20],
+        sub[20:40],
+        sub[40:60].ljust(20),
     )
 
 
-def _mk_signature_screens(sig, template='Tail.{:d}:'):
+def _mk_signature_screens(sig, name='Tail'):
     assert type(sig) is bytes and len(sig) == 64
-    return tuple(_mk_signature_lines(sig, i, template) for i in [0, 1])
-
+    b32_sig = b32enc(sig)
+    return (
+        _mk_signature_lines(b32_sig, name, 0, 60),
+        _mk_signature_lines(b32_sig, name, 60, 103),
+    )
 
 def _mk_genesis_screens(sig):
-    return _mk_signature_screens(sig, template='Genesis.{:d}:')
+    return _mk_signature_screens(sig, name='Genesis')
 
 
 def _mk_screens_0():

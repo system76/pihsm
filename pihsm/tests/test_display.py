@@ -67,49 +67,48 @@ class TestFunctions(TestCase):
         sig = s1 + s2
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                'Tail.0:'.center(20),
+                'Tail[0:60]:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA        ',
+                'AAAAAAAAAAAP77777777',
             ),
             (
-                'Tail.1:'.center(20),
+                'Tail[60:103]:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q        ',
+                '77Y                 ',
             ),
         ))
         sig = s2 + s1
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                'Tail.0:'.center(20),
+                'Tail[0:60]:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q        ',
+                '77777777777QAAAAAAAA',
             ),
             (
-                'Tail.1:'.center(20),
+                'Tail[60:103]:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA        ',
+                'AAA                 ',
             ),
         ))
 
         sig = os.urandom(64)
-        b1 = b32enc(sig[:32])
-        b2 = b32enc(sig[32:])
+        s =  b32enc(sig)
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                'Tail.0:'.center(20),
-                b1[0:20],
-                b1[20:40],
-                b1[40:] + (' ' * 8),
+                'Tail[0:60]:'.center(20),
+                s[0:20],
+                s[20:40],
+                s[40:60],
             ),
             (
-                'Tail.1:'.center(20),
-                b2[0:20],
-                b2[20:40],
-                b2[40:] + (' ' * 8),
+                'Tail[60:103]:'.center(20),
+                s[60:80],
+                s[80:100],
+                s[100:103] + (' ' * 17),
             ),
         ))
 
@@ -120,49 +119,48 @@ class TestFunctions(TestCase):
         sig = s1 + s2
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                'Genesis.0:'.center(20),
+                'Genesis[0:60]:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA        ',
+                'AAAAAAAAAAAP77777777',
             ),
             (
-                'Genesis.1:'.center(20),
+                'Genesis[60:103]:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q        ',
+                '77Y                 ',
             ),
         ))
         sig = s2 + s1
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                'Genesis.0:'.center(20),
+                'Genesis[0:60]:'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
-                '77777777777Q        ',
+                '77777777777QAAAAAAAA',
             ),
             (
-                'Genesis.1:'.center(20),
+                'Genesis[60:103]:'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
-                'AAAAAAAAAAAA        ',
+                'AAA                 ',
             ),
         ))
 
         sig = os.urandom(64)
-        b1 = b32enc(sig[:32])
-        b2 = b32enc(sig[32:])
+        s = b32enc(sig)
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                'Genesis.0:'.center(20),
-                b1[0:20],
-                b1[20:40],
-                b1[40:] + (' ' * 8),
+                'Genesis[0:60]:'.center(20),
+                s[0:20],
+                s[20:40],
+                s[40:60],
             ),
             (
-                'Genesis.1:'.center(20),
-                b2[0:20],
-                b2[20:40],
-                b2[40:] + (' ' * 8),
+                'Genesis[60:103]:'.center(20),
+                s[60:80],
+                s[80:100],
+                s[100:103] + (' ' * 17),
             ),
         ))
 

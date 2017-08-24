@@ -60,10 +60,10 @@ class Server:
                 'bad request size {!r} not in {!r}'.format(size, self.sizes)
             )
         verify_message(request)
-        log.info('%s byte request', len(request))
+        log.debug('%s byte request', len(request))
 
         response = self.handle_request(request)
-        log.info('%s byte response', len(response))
+        log.debug('%s byte response', len(response))
         sock.send(response)
 
     def handle_request(self, request):

@@ -21,7 +21,7 @@ __version__ = '0.0.1'
 def configure_logging(name):
     import logging
 
-    _format = '\t'.join([
+    _format = ' '.join([
         '%(levelname)s',
         '%(message)s',
     ])
