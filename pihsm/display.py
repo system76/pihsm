@@ -151,7 +151,7 @@ def _mk_pubkey_lines(pubkey):
     assert type(pubkey) is bytes and len(pubkey) == 32
     p = b32enc(pubkey)
     return (
-        'Public Key:'.center(20),
+        'Public Key'.center(20),
         p[0:20],
         p[20:40],
         p[40:56].ljust(20),
@@ -164,7 +164,7 @@ def _mk_signature_lines(b32_sig, name, start, stop):
     sub = b32_sig[start:stop]
     assert 40 < len(sub) <= 60
     return (
-        '{}[{}:{}]:'.format(name, start, stop).center(20),
+        '{} [{}:{}]'.format(name, start, stop).center(20),
         sub[0:20],
         sub[20:40],
         sub[40:60].ljust(20),

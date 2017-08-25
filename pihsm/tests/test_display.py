@@ -39,14 +39,14 @@ class TestFunctions(TestCase):
     def test_mk_pubkey_lines(self):
         pubkey = b'\x00' * 32
         self.assertEqual(display._mk_pubkey_lines(pubkey), (
-            '    Public Key:     ',
+            '     Public Key     ',
             'AAAAAAAAAAAAAAAAAAAA',
             'AAAAAAAAAAAAAAAAAAAA',
             'AAAAAAAAAAAA        ',
         ))
         pubkey = b'\xFF' * 32
         self.assertEqual(display._mk_pubkey_lines(pubkey), (
-            '    Public Key:     ',
+            '     Public Key     ',
             '77777777777777777777',
             '77777777777777777777',
             '77777777777Q        ',
@@ -54,7 +54,7 @@ class TestFunctions(TestCase):
         pubkey = os.urandom(32)
         b32 = b32enc(pubkey)
         self.assertEqual(display._mk_pubkey_lines(pubkey), (
-            '    Public Key:     ',
+            '     Public Key     ',
             b32[0:20],
             b32[20:40],
             b32[40:52] + (' ' * 8),
@@ -67,13 +67,13 @@ class TestFunctions(TestCase):
         sig = s1 + s2
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                'Tail[0:60]:'.center(20),
+                'Tail [0:60]'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAP77777777',
             ),
             (
-                'Tail[60:103]:'.center(20),
+                'Tail [60:103]'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77Y                 ',
@@ -82,13 +82,13 @@ class TestFunctions(TestCase):
         sig = s2 + s1
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                'Tail[0:60]:'.center(20),
+                'Tail [0:60]'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777QAAAAAAAA',
             ),
             (
-                'Tail[60:103]:'.center(20),
+                'Tail [60:103]'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAA                 ',
@@ -99,13 +99,13 @@ class TestFunctions(TestCase):
         s =  b32enc(sig)
         self.assertEqual(display._mk_signature_screens(sig), (
             (
-                'Tail[0:60]:'.center(20),
+                'Tail [0:60]'.center(20),
                 s[0:20],
                 s[20:40],
                 s[40:60],
             ),
             (
-                'Tail[60:103]:'.center(20),
+                'Tail [60:103]'.center(20),
                 s[60:80],
                 s[80:100],
                 s[100:103] + (' ' * 17),
@@ -119,13 +119,13 @@ class TestFunctions(TestCase):
         sig = s1 + s2
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                'Genesis[0:60]:'.center(20),
+                'Genesis [0:60]'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAP77777777',
             ),
             (
-                'Genesis[60:103]:'.center(20),
+                'Genesis [60:103]'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77Y                 ',
@@ -134,13 +134,13 @@ class TestFunctions(TestCase):
         sig = s2 + s1
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                'Genesis[0:60]:'.center(20),
+                'Genesis [0:60]'.center(20),
                 '77777777777777777777',
                 '77777777777777777777',
                 '77777777777QAAAAAAAA',
             ),
             (
-                'Genesis[60:103]:'.center(20),
+                'Genesis [60:103]'.center(20),
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAAAAAAAAAAAAAAAAAAA',
                 'AAA                 ',
@@ -151,13 +151,13 @@ class TestFunctions(TestCase):
         s = b32enc(sig)
         self.assertEqual(display._mk_genesis_screens(sig), (
             (
-                'Genesis[0:60]:'.center(20),
+                'Genesis [0:60]'.center(20),
                 s[0:20],
                 s[20:40],
                 s[40:60],
             ),
             (
-                'Genesis[60:103]:'.center(20),
+                'Genesis [60:103]'.center(20),
                 s[60:80],
                 s[80:100],
                 s[100:103] + (' ' * 17),
