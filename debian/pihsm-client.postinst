@@ -1,0 +1,18 @@
+#!/bin/sh -e
+
+case $1 in
+    configure)
+        if ! getent passwd pihsm-client > /dev/null; then
+            adduser --system --quiet \
+                --home /var/lib/pihsm/client --no-create-home \
+                --shell /bin/bash --group --gecos "pihsm-client" pihsm-client
+        fi
+        if ! getent group pihsm-client-socket > /dev/null; then
+            addgroup --system --quiet pihsm-client-socket
+        fi
+        adduser pihsm-client dialout --quiet
+        chmod 0770 /var/lib/pihsm/client
+        chown -R pihsm-client:pihsm-client /var/lib/pihsm/client
+esac
+
+#DEBHELPER#

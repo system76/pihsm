@@ -38,6 +38,10 @@ class MockSerial:
         self._calls.append(('read', size))
         return self._returns.pop(0)
 
+    def write(self, msg):
+        self._calls.append(('write', msg))
+        return len(msg)
+
 
 class TestFunctions(TestCase):
     def test_open_serial(self):

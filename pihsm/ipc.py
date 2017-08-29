@@ -59,7 +59,6 @@ class Server:
             raise ValueError(
                 'bad request size {!r} not in {!r}'.format(size, self.sizes)
             )
-        verify_message(request)
         log.debug('%s byte request', len(request))
 
         response = self.handle_request(request)
@@ -67,6 +66,7 @@ class Server:
         sock.send(response)
 
     def handle_request(self, request):
+        verify_message(request)
         return compute_digest(request)
 
 
@@ -79,6 +79,7 @@ class PrivateServer(Server):
         self.display_client = display_client
 
     def handle_request(self, request):
+        verify_message(request)
         response = self.signer.sign(request)
         self.display_client.make_request(response)
         log_response(response, 'Signing Response')
@@ -93,8 +94,22 @@ class DisplayServer(Server):
         self.manager = manager
 
     def handle_request(self, request):
+        verify_message(request)
         self.manager.update_screens(request)
         return compute_digest(request)
+
+
+class ClientServer(Server):
+    __slots__ = ('serial_client', 'signer')
+
+    def __init__(self, sock, serial_client, signer):
+        super().__init__(sock, 48)
+        self.serial_client = serial_client
+        self.signer = signer
+
+    def handle_request(self, digest):
+        request = self.signer.sign(digest)
+        return self.serial_client.make_request(request)
 
 
 class Client:
@@ -143,6 +158,19 @@ class PrivateClient(Client):
     __slots__ = tuple()
 
     def __init__(self, filename='/run/pihsm/private.socket'):
+        super().__init__(filename, 400)
+
+    def make_request(self, request):
+        response = self._make_request(request)
+        verify_message(response)
+        assert response.endswith(request)
+        return response
+
+
+class ClientClient(Client):
+    __slots__ = tuple()
+
+    def __init__(self, filename='/run/pihsm/client.socket'):
         super().__init__(filename, 400)
 
     def make_request(self, request):

@@ -16,8 +16,9 @@
 
 
 import logging
+import time
 
-from .common import b32enc
+from .common import b32enc, REQUEST, RESPONSE, log_request, log_response, get_message
 from .verify import isvalid, get_pubkey
 
 
@@ -34,6 +35,8 @@ def open_serial(port, SerialClass):
 def read_serial(ttl, size):
     assert type(size) is int and size > 0
     msg = ttl.read(size)
+    if len(msg) == 0:
+        return None
     if len(msg) != size:
         log.warning('serial read: expected %d bytes; got %d', size, len(msg))
         return None
@@ -44,14 +47,42 @@ def read_serial(ttl, size):
 
 
 class SerialServer:
+    __slots__ = ('ttl', 'private_client')
+
     def __init__(self, ttl, private_client):
         self.ttl = ttl
         self.private_client = private_client
 
     def serve_forever(self):
         while True:
-            request = read_serial(self.ttl, 224)
+            request = read_serial(self.ttl, REQUEST)
             if request is not None:
-                response = self.private_client.make_request(request)
+                response = self.handle_request(request)
                 self.ttl.write(response)
+
+    def handle_request(self, request):
+        log_request(request, 'Signing Request')
+        response = self.private_client.make_request(request)
+        log_response(response, 'Signing Response')
+        return response
+
+
+class SerialClient:
+    __slots__ = ('ttl')
+
+    def __init__(self, ttl):
+        self.ttl = ttl
+
+    def make_request(self, request, retries=10):
+        log_request(request, 'Signing Request')
+        for i in range(retries):
+            self.ttl.write(request)
+            response = read_serial(self.ttl, RESPONSE)
+            if response is not None:
+                log_response(response, 'Signing Response')
+                assert get_message(response) == request
+                return response
+            log.warning('Retry %d', i)
+            time.sleep(7)
+        assert False
 

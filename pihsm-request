@@ -16,24 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import serial
+import argparse
+from os import path
 
 import pihsm
-from pihsm.common import SignatureStore
-from pihsm.sign import Signer
-from pihsm.serial import open_serial, SerialClient
-from pihsm.ipc import open_activated_socket, ClientServer
+from pihsm.common import compute_digest, b32enc
+from pihsm.ipc import ClientClient
 
 
 log = pihsm.configure_logging(__name__)
 
 
-ttl = open_serial('/dev/ttyUSB0', serial.Serial)
-serial_client = SerialClient(ttl)
-store = SignatureStore('/var/lib/pihsm/client')
-signer = Signer(store)
+parser = argparse.ArgumentParser()
+parser.add_argument('filename',
+    help='Path to manifest file to sign'
+)
+args = parser.parse_args()
+filename = path.abspath(args.filename)
 
-sock = open_activated_socket()
-server = ClientServer(sock, serial_client, signer)
+with open(filename, 'rb', 0) as fp:
+    content = fp.read()
+digest = compute_digest(content)
+print(b32enc(digest))
+    
 
-server.serve_forever()
+client = ClientClient()
+client.make_request(digest)

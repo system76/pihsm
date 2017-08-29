@@ -40,6 +40,8 @@ SCRIPTS = [
     'pihsm-private',
     'pihsm-server',
     'pihsm-display',
+    'pihsm-client',
+    'pihsm-request',
 ]
 
 

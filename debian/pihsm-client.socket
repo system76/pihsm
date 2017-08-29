@@ -1,0 +1,12 @@
+[Unit]
+Description=PiHSM Display Socket
+PartOf=pihsm-client.service
+
+[Socket]
+ListenStream=/run/pihsm/client.socket
+Backlog=0
+SocketGroup=pihsm-client-socket
+SocketMode=660
+
+[Install]
+WantedBy=sockets.target

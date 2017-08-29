@@ -1,0 +1,13 @@
+[Unit]
+Description=PiHSM Client Service
+After=network.target pihsm-client.socket
+Requires=pihsm-client.socket
+
+[Service]
+User=pihsm-client
+ExecStart=/usr/bin/pihsm-client
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
