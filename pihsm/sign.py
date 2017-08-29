@@ -30,7 +30,7 @@ import time
 
 from nacl.signing import SigningKey
 
-from .common import get_signature, b32enc
+from .common import get_signature, get_message, b32enc
 
 
 log = logging.getLogger(__name__)
@@ -43,7 +43,6 @@ def get_time():
 def get_entropy_avail(filename='/proc/sys/kernel/random/entropy_avail'):
     with open(filename, 'rb', 0) as fp:
         return int(fp.read(20))
-
 
 
 def build_signing_form(public, previous, counter, timestamp, message):
@@ -67,16 +66,25 @@ class DummyStore:
 
 
 class Signer:
+    __slots__ = ('key', 'public', 'genesis', 'tail', 'counter', 'store')
+
     def __init__(self, store=None):
         self.key = SigningKey.generate()
         self.public = bytes(self.key.verify_key)
-        self.genesis = bytes(self.key.sign(self.public))
-        self.previous = self.genesis[0:64]
+        self.genesis = self.tail = bytes(self.key.sign(self.public))
         self.counter = 0
         self.store = (DummyStore() if store is None else store)
         self.store.write(self.genesis)
         log.info('PubKey: %s', b32enc(self.public))
         log.info('Genesis: %s', b32enc(self.previous))
+
+    @property
+    def previous(self):
+        return get_signature(self.tail)
+
+    @property
+    def message(self):
+        return get_message(self.tail)
 
     def build_signing_form(self, timestamp, message):
         return build_signing_form(
@@ -84,12 +92,14 @@ class Signer:
         )
 
     def sign(self, message, timestamp=None):
+        if message == self.message:
+            log.warning('Reusing signature %s', b32enc(self.previous))
+            return self.tail
         timestamp = (get_time() if timestamp is None else timestamp)
         self.counter += 1
         signing_form = self.build_signing_form(timestamp, message)
-        signed = bytes(self.key.sign(signing_form))
-        self.previous = get_signature(signed)
+        self.tail = bytes(self.key.sign(signing_form))
         log.info('Signature %d: %s', self.counter, b32enc(self.previous))
-        self.store.write(signed)
-        return signed
+        self.store.write(self.tail)
+        return self.tail
 

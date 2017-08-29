@@ -76,7 +76,7 @@ def get_timestamp(signed):
 
 
 def get_message(signed):
-    assert type(signed) is bytes and len(signed) >= PREFIX
+    #assert type(signed) is bytes and len(signed) >= PREFIX, signed
     return signed[PREFIX:]
 
 

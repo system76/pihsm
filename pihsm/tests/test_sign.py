@@ -55,8 +55,12 @@ class TestSigner(TestCase):
         s = sign.Signer()
         self.assertIsInstance(s.key, nacl.signing.SigningKey)
         self.assertEqual(s.public, bytes(s.key.verify_key))
+        self.assertEqual(s.genesis, bytes(s.key.sign(s.public)))
+        self.assertIs(s.tail, s.genesis)
         self.assertEqual(s.previous, s.key.sign(s.public).signature)
+        self.assertEqual(s.message, b'')
         self.assertEqual(s.counter, 0)
+        self.assertIs(type(s.store), sign.DummyStore)
 
     def test_build_signing_form(self):
         s = sign.Signer()
@@ -79,8 +83,14 @@ class TestSigner(TestCase):
         self.assertEqual(s.sign(msg, timestamp=ts), expected)
         self.assertNotEqual(s.previous, prev)
         self.assertEqual(s.previous, expected[:64])
+        self.assertEqual(s.message, msg)
+        self.assertEqual(s.tail, expected)
         self.assertEqual(s.counter, 1)
         self.assertEqual(s.public, pub)
+
+        # Should return the same thing:
+        tail1 = s.tail
+        self.assertIs(s.sign(msg), tail1)
 
         prev = s.previous
         ts = random_u64()
@@ -90,6 +100,13 @@ class TestSigner(TestCase):
         self.assertEqual(s.sign(msg, timestamp=ts), expected)
         self.assertNotEqual(s.previous, prev)
         self.assertEqual(s.previous, expected[:64])
+        self.assertEqual(s.message, msg)
+        self.assertEqual(s.tail, expected)
         self.assertEqual(s.counter, 2)
         self.assertEqual(s.public, pub)
+
+        # Should return the same thing:
+        tail2 = s.tail
+        self.assertIs(s.sign(msg), tail2)
+        self.assertNotEqual(tail2, tail1)
 
