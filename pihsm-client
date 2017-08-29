@@ -21,7 +21,7 @@ import os
 import time
 
 import pihsm
-from pihsm.common import b32enc, get_signature, get_counter
+from pihsm.common import b32enc, get_signature, get_counter, log_request, log_response
 from pihsm.sign import Signer
 from pihsm.serial import open_serial, read_serial
 
@@ -31,10 +31,12 @@ log = pihsm.configure_logging(__name__)
 
 ttl = open_serial('/dev/ttyUSB0', serial.Serial)
 s = Signer()
-for i in range(100):
+for i in range(50):
     request = s.sign(os.urandom(48))
-    ttl.write(request)
-    response = read_serial(ttl, 400)
-    print(get_counter(response), b32enc(get_signature(response)))
-    time.sleep(1)
+    log_request(request, 'Sending new request')
+    for j in range(2):
+        ttl.write(request)
+        response = read_serial(ttl, 400)
+        log_response(response, 'Got Response')
+        time.sleep(1)
 

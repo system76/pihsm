@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from collections import namedtuple
+import logging
 from hashlib import sha384
 from base64 import b32encode, b32decode
 import os
@@ -22,6 +23,7 @@ from os import path
 
 
 Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp message')
+log = logging.getLogger(__name__)
 
 
 SIGNATURE = 64
@@ -109,6 +111,81 @@ def b32enc(data):
 def b32dec(string):
     pad = (8 - (len(string) % 8)) % 8
     return b32decode(string + ('=' * pad))
+
+
+GENESIS_TEMPLATE = '\n\t'.join([
+    '%s:',
+    'Genesis.signature: %s',
+    'Genesis.pubkey: %s',
+])
+
+
+def log_genesis(genesis, annotation):
+    sig = get_signature(genesis)
+    pub = get_pubkey(genesis)
+    log.info(GENESIS_TEMPLATE, annotation,
+        b32enc(sig),
+        b32enc(pub),
+    )
+
+
+REQUEST_TEMPLATE = '\n\t'.join([
+    '%s:',
+    'Request.signature: %s',
+    'Request.pubkey: %s',
+    'Request.previous: %s',
+    'Request.counter: %s',
+    'Request.timestamp: %s',
+    'Request.sha384: %s',
+])
+
+
+def log_request(request, annotation):
+    r = unpack_signed(request)
+    log.info(REQUEST_TEMPLATE, annotation,
+        b32enc(r.signature),
+        b32enc(r.pubkey),
+        b32enc(r.previous),
+        r.counter,
+        r.timestamp,
+        b32enc(r.message),
+    )
+
+
+RESPONSE_TEMPLATE = '\n\t'.join([
+    '%s:',
+    'Response.signature: %s',
+    'Response.pubkey: %s',
+    'Response.previous: %s',
+    'Response.counter: %s',
+    'Response.timestamp: %s',
+
+    'Response.request.signature: %s',
+    'Response.request.pubkey: %s',
+    'Response.request.previous: %s',
+    'Response.request.counter: %s',
+    'Response.request.timestamp: %s',
+    'Response.request.sha384: %s',
+])
+
+
+def log_response(request, annotation):
+    a = unpack_signed(request)
+    b = unpack_signed(a.message)
+    log.info(RESPONSE_TEMPLATE, annotation,
+        b32enc(a.signature),
+        b32enc(a.pubkey),
+        b32enc(a.previous),
+        a.counter,
+        a.timestamp,
+
+        b32enc(b.signature),
+        b32enc(b.pubkey),
+        b32enc(b.previous),
+        b.counter,
+        b.timestamp,
+        b32enc(b.message),
+    )
 
 
 def compute_digest(data):

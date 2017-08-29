@@ -18,7 +18,7 @@
 import logging
 import socket
 
-from .common import compute_digest
+from .common import compute_digest, log_response
 from .verify import verify_message
 
 
@@ -79,9 +79,10 @@ class PrivateServer(Server):
         self.display_client = display_client
 
     def handle_request(self, request):
-        signed = self.signer.sign(request)
-        self.display_client.make_request(signed)
-        return signed
+        response = self.signer.sign(request)
+        self.display_client.make_request(response)
+        log_response(response, 'Signing Response')
+        return response
 
 
 class DisplayServer(Server):

@@ -40,7 +40,7 @@
 import time
 import threading
 
-from .common import b32enc
+from .common import b32enc, log_genesis, log_response
 from .verify import get_signature, get_pubkey, get_counter
 from .sign import get_entropy_avail
 
@@ -180,6 +180,7 @@ def _mk_signature_screens(sig, name='Tail'):
     b32_sig = b32enc(sig)
     return tuple(_mk_signature_lines(b32_sig, name, i) for i in [0, 1])
 
+
 def _mk_genesis_screens(sig):
     return _mk_signature_screens(sig, name='Genesis')
 
@@ -192,6 +193,7 @@ def _mk_screens_0():
 
 def _mk_screens_96(tail):
     assert type(tail) is bytes and len(tail) == 96
+    log_genesis(tail, 'Diplaying genesis screens')
     return (
         _mk_status_lines(),
         _mk_pubkey_lines(get_pubkey(tail)),
@@ -200,6 +202,7 @@ def _mk_screens_96(tail):
 
 def _mk_screens_400(tail):
     assert type(tail) is bytes and len(tail) == 400
+    log_response(tail, 'Displaying latest signing response')
     return (
         _mk_time_and_counter_lines(get_counter(tail)),
         _mk_pubkey_lines(get_pubkey(tail)),

@@ -263,6 +263,18 @@ class TestFunctions(TestCase):
             b'\x00' * 5
         )
 
+    def test_log_genesis(self):
+        genesis = os.urandom(common.GENESIS)
+        self.assertIsNone(common.log_genesis(genesis, 'Some thing'))
+
+    def test_log_request(self):
+        request = os.urandom(common.REQUEST)
+        self.assertIsNone(common.log_request(request, 'Some thing'))
+
+    def test_log_response(self):
+        response = os.urandom(common.RESPONSE)
+        self.assertIsNone(common.log_response(response, 'Some thing'))
+
     def test_compute_digest(self):
         good = b'System76'
 
