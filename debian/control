@@ -19,7 +19,19 @@ Package: python3-pihsm
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends},
     python3-nacl,
+Suggests: python3-pihsm-doc
 Description: use your Raspberry Pi as a Hardware Security Module
+ This turns your Raspberry Pi into a Hardware Security Module.
+ .
+ PiHSM provides an offline Public Key Signature server using the Ed25519
+ digital signature algorithm.
+
+Package: python3-pihsm-doc
+Architecture: all
+Section: doc
+Depends: ${sphinxdoc:Depends}, ${misc:Depends}
+Suggests: python3-pihsm
+Description: use your Raspberry Pi as a Hardware Security Module [documentation]
  This turns your Raspberry Pi into a Hardware Security Module.
  .
  PiHSM provides an offline Public Key Signature server using the Ed25519

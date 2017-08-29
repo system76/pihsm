@@ -3,7 +3,15 @@
 # See https://wiki.debian.org/Python/LibraryStyleGuide
 
 %:
-	dh $@ --buildsystem=pybuild --with=python3,systemd
+	dh $@ --buildsystem=pybuild --with=python3,sphinxdoc,systemd
+
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf doc/_build/
+
+override_dh_auto_build:
+	dh_auto_build
+	sphinx-build -EW -b html doc/ doc/_build/html/
 
 override_dh_auto_test:
 	set -ex; for python in $(shell py3versions -r); do \

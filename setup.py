@@ -27,18 +27,68 @@ if sys.version_info < (3, 4):
 
 from distutils.core import setup
 from distutils.cmd import Command
+import os
+from os import path
+import subprocess
 
 import pihsm
 from pihsm.tests.run import run_tests
 
 
+TREE = path.dirname(path.abspath(__file__))
+SCRIPTS = [
+    'pihsm-private',
+    'pihsm-server',
+    'pihsm-display',
+]
+
+
+def run_under_same_interpreter(opname, script, args):
+    print('\n** running: {}...'.format(script), file=sys.stderr)
+    if not os.access(script, os.R_OK | os.X_OK):
+        print('ERROR: cannot read and execute: {!r}'.format(script),
+            file=sys.stderr
+        )
+        print('Consider running `setup.py test --skip-{}`'.format(opname),
+            file=sys.stderr
+        )
+        sys.exit(3)
+    cmd = [sys.executable, script] + args
+    print('check_call:', cmd, file=sys.stderr)
+    subprocess.check_call(cmd)
+    print('** PASSED: {}\n'.format(script), file=sys.stderr)
+
+
+def run_sphinx_doctest():
+    script = '/usr/share/sphinx/scripts/python3/sphinx-build'
+    doc = path.join(TREE, 'doc')
+    doctest = path.join(TREE, 'doc', '_build', 'doctest')
+    args = ['-EW', '-b', 'doctest', doc, doctest]
+    run_under_same_interpreter('sphinx', script, args)
+
+
+def run_pyflakes3():
+    script = '/usr/bin/pyflakes3'
+    names = [
+        'pihsm',
+        'setup.py',
+    ] + SCRIPTS
+    args = [path.join(TREE, name) for name in names]
+    run_under_same_interpreter('flakes', script, args)
+
+
+
 class Test(Command):
     description = 'run unit tests and doc tests'
 
-    user_options = []
+    user_options = [
+        ('skip-sphinx', None, 'do not run Sphinx doctests'),
+        ('skip-flakes', None, 'do not run pyflakes static checks'),
+    ]
 
     def initialize_options(self):
-        pass
+        self.skip_sphinx = 0
+        self.skip_flakes = 0
 
     def finalize_options(self):
         pass
@@ -46,6 +96,10 @@ class Test(Command):
     def run(self):
         if not run_tests():
             raise SystemExit(2)
+        if not self.skip_sphinx:
+            run_sphinx_doctest()
+        if not self.skip_flakes:
+            run_pyflakes3()
 
 
 setup(
@@ -61,10 +115,6 @@ setup(
         'pihsm',
         'pihsm.tests'
     ],
-    scripts=[
-        'pihsm-private',
-        'pihsm-server',
-        'pihsm-display',
-    ],
+    scripts=SCRIPTS,
 )
 
