@@ -113,7 +113,7 @@ def b32dec(string):
     return b32decode(string + ('=' * pad))
 
 
-GENESIS_TEMPLATE = '\n\t'.join([
+GENESIS_TEMPLATE = '\n '.join([
     'Genesis:',
     'Genesis.signature: %s',
     'Genesis.public: %s',
@@ -129,7 +129,7 @@ def log_genesis(genesis):
     )
 
 
-REQUEST_TEMPLATE = '\n\t'.join([
+REQUEST_TEMPLATE = '\n '.join([
     'Request:',
     'Request.signature: %s',
     'Request.public: %s',
@@ -152,7 +152,7 @@ def log_request(request):
     )
 
 
-RESPONSE_TEMPLATE = '\n\t'.join([
+RESPONSE_TEMPLATE = '\n '.join([
     'Response:',
     'Response.signature: %s',
     'Response.public: %s',

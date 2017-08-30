@@ -42,6 +42,14 @@ class MockSocket:
         return len(src)
 
 
+class MockDisplayClient:
+    def __init__(self):
+        self._calls = []
+
+    def make_request(self, request):
+        self._calls.append(request)
+
+
 class TestServer(TestCase):
     def test_init(self):
         sock = MockSocket()
@@ -95,6 +103,85 @@ class TestServer(TestCase):
                 self.assertEqual(str(cm.exception),
                     'Signature was forged or corrupt',
                 )
+
+
+class TestPrivateServer(TestCase):
+    def test_init(self):
+        sock = MockSocket()
+        display_client = MockDisplayClient()
+        signer = Signer()
+        server = ipc.PrivateServer(sock, display_client, signer)
+        self.assertIs(server.sock, sock)
+        self.assertIs(server.display_client, display_client)
+        self.assertIs(server.signer, signer)
+
+    def test_handle_request(self):
+        sock = MockSocket()
+        display_client = MockDisplayClient()
+        signer = Signer()
+        server = ipc.PrivateServer(sock, display_client, signer)
+
+        s = Signer()
+        req1 = s.sign(os.urandom(48))
+
+        # Make sure request signature is checked:
+        for bad in iter_permutations(req1):
+            with self.assertRaises(BadSignatureError) as cm:
+                server.handle_request(bad)
+            self.assertEqual(str(cm.exception),
+                'Signature was forged or corrupt'
+            )
+        self.assertEqual(sock._calls, [])
+        self.assertIs(signer.tail, signer.genesis)
+        self.assertEqual(display_client._calls, [])
+
+        # Good request:
+        response1 = server.handle_request(req1)
+        self.assertIs(type(response1), bytes)
+        self.assertEqual(len(response1), 400)
+        self.assertTrue(response1.endswith(req1))
+        self.assertIs(signer.tail, response1)
+        self.assertEqual(signer.counter, 1)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(display_client._calls, [response1])
+
+        # Should return same response if exact immediate request is reused:
+        self.assertIs(server.handle_request(req1), response1)
+        self.assertIs(signer.tail, response1)
+        self.assertEqual(signer.counter, 1)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(display_client._calls, [response1])  # Should not update display
+
+        # Another good request:
+        req2 = s.sign(os.urandom(48))
+
+        # Make sure request signature is checked:
+        for bad in iter_permutations(req2):
+            with self.assertRaises(BadSignatureError) as cm:
+                server.handle_request(bad)
+            self.assertEqual(str(cm.exception),
+                'Signature was forged or corrupt'
+            )
+        self.assertEqual(sock._calls, [])
+        self.assertIs(signer.tail, response1)
+        self.assertEqual(display_client._calls, [response1])
+
+        # Good request:
+        response2 = server.handle_request(req2)
+        self.assertIs(type(response2), bytes)
+        self.assertEqual(len(response2), 400)
+        self.assertTrue(response2.endswith(req2))
+        self.assertIs(signer.tail, response2)
+        self.assertEqual(signer.counter, 2)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(display_client._calls, [response1, response2])
+
+        # Should return same response if exact immediate request is reused:
+        self.assertIs(server.handle_request(req2), response2)
+        self.assertIs(signer.tail, response2)
+        self.assertEqual(signer.counter, 2)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(display_client._calls, [response1, response2])
 
 
 def _run_server(queue, filename, build_func, *build_args):

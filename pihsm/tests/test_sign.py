@@ -88,10 +88,6 @@ class TestSigner(TestCase):
         self.assertEqual(s.counter, 1)
         self.assertEqual(s.public, pub)
 
-        # Should return the same thing:
-        tail1 = s.tail
-        self.assertIs(s.sign(msg), tail1)
-
         prev = s.previous
         ts = random_u64()
         msg = os.urandom(48)
@@ -104,9 +100,4 @@ class TestSigner(TestCase):
         self.assertEqual(s.tail, expected)
         self.assertEqual(s.counter, 2)
         self.assertEqual(s.public, pub)
-
-        # Should return the same thing:
-        tail2 = s.tail
-        self.assertIs(s.sign(msg), tail2)
-        self.assertNotEqual(tail2, tail1)
 

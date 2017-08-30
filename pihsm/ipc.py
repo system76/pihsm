@@ -18,7 +18,7 @@
 import logging
 import socket
 
-from .common import compute_digest, log_response
+from .common import compute_digest, log_response, get_signature, b32enc
 from .verify import verify_message
 
 
@@ -80,8 +80,12 @@ class PrivateServer(Server):
 
     def handle_request(self, request):
         verify_message(request)
-        response = self.signer.sign(request)
-        self.display_client.make_request(response)
+        if self.signer.message == request:
+            response = self.signer.tail
+            log.warning('Reusing response %s', b32enc(get_signature(response)))
+        else:
+            response = self.signer.sign(request)
+            self.display_client.make_request(response)
         log_response(response)
         return response
 

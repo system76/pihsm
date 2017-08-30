@@ -30,7 +30,7 @@ import time
 
 from nacl.signing import SigningKey
 
-from .common import get_signature, get_message, b32enc
+from .common import get_signature, get_message, log_genesis
 
 
 log = logging.getLogger(__name__)
@@ -72,11 +72,10 @@ class Signer:
         self.key = SigningKey.generate()
         self.public = bytes(self.key.verify_key)
         self.genesis = self.tail = bytes(self.key.sign(self.public))
+        log_genesis(self.genesis)
         self.counter = 0
         self.store = (DummyStore() if store is None else store)
         self.store.write(self.genesis)
-        log.info('PubKey: %s', b32enc(self.public))
-        log.info('Genesis: %s', b32enc(self.previous))
 
     @property
     def previous(self):
@@ -92,9 +91,6 @@ class Signer:
         )
 
     def sign(self, message, timestamp=None):
-        if message == self.message:
-            log.warning('Reusing signature %s', b32enc(self.previous))
-            return self.tail
         timestamp = (get_time() if timestamp is None else timestamp)
         self.counter += 1
         signing_form = self.build_signing_form(timestamp, message)

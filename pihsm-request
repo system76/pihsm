@@ -19,7 +19,6 @@
 import argparse
 import os
 from os import path
-import time
 
 import pihsm
 from pihsm.common import compute_digest, log_response
@@ -39,9 +38,11 @@ filename = path.abspath(args.filename)
 with open(filename, 'rb', 0) as fp:
     content = fp.read()
 digest = compute_digest(content)
-    
+
 client = ClientClient()
+response = client.make_request(digest)
+log_response(response)
+
 for i in range(100):
     response = client.make_request(os.urandom(48))
     log_response(response)
-    time.sleep(1)
