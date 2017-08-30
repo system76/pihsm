@@ -5,7 +5,7 @@ PartOf=pihsm-private.service
 [Socket]
 ListenStream=/run/pihsm/private.socket
 Backlog=0
-SocketGroup=pihsm-private-client
+SocketGroup=pihsm-private-socket
 SocketMode=660
 
 [Install]

@@ -7,7 +7,7 @@ case $1 in
                 --home /var/lib/pihsm/server --no-create-home \
                 --shell /bin/bash --group --gecos "pihsm-server" pihsm-server
         fi
-        adduser pihsm-server pihsm-private-client --quiet
+        adduser pihsm-server pihsm-private-socket --quiet
         adduser pihsm-server dialout --quiet
 esac
 

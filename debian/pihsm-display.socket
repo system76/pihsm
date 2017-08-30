@@ -5,7 +5,7 @@ PartOf=pihsm-display.service
 [Socket]
 ListenStream=/run/pihsm/display.socket
 Backlog=0
-SocketGroup=pihsm-display-client
+SocketGroup=pihsm-display-socket
 SocketMode=660
 
 [Install]
