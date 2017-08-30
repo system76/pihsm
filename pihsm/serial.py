@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 
 def open_serial(port, SerialClass):
     return SerialClass(port,
-        baudrate=57600,
+        baudrate=115200,
         timeout=TIMEOUT,
     )
 
