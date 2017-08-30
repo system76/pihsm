@@ -18,7 +18,13 @@
 import logging
 import socket
 
-from .common import compute_digest, log_response, get_signature, b32enc, TIMEOUT
+from .common import (
+    IPC_TIMEOUT,
+    compute_digest,
+    log_response,
+    get_signature,
+    b32enc,
+)
 from .verify import verify_message
 
 
@@ -46,7 +52,7 @@ class Server:
         while True:
             (sock, address) = self.sock.accept()
             try:
-                sock.settimeout(TIMEOUT)
+                sock.settimeout(IPC_TIMEOUT)
                 self.handle_connection(sock)
             except:
                 log.exception('Error handling request:')
@@ -136,7 +142,7 @@ class Client:
 
     def connect(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(TIMEOUT)
+        sock.settimeout(IPC_TIMEOUT)
         sock.connect(self.filename)
         return sock
 

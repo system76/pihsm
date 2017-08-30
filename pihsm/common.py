@@ -26,7 +26,9 @@ Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp messa
 log = logging.getLogger(__name__)
 
 
-TIMEOUT = 5
+SERIAL_TIMEOUT = 1
+SERIAL_RETRIES = 3
+IPC_TIMEOUT = SERIAL_TIMEOUT * (SERIAL_RETRIES + 1)
 
 SIGNATURE = 64
 PUBKEY = 32

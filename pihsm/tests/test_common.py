@@ -46,7 +46,7 @@ class TestNamedTuples(TestCase):
 
 
 class TestConstants(TestCase):
-    def check_size(self, name, expected):
+    def check_int(self, name, expected):
         self.assertEqual(name, name.upper())
         self.assertIs(type(expected), int)
         self.assertGreater(expected, 0)
@@ -54,44 +54,53 @@ class TestConstants(TestCase):
         self.assertIs(type(value), int)
         self.assertEqual(value, expected)
 
-    def test_TIMEOUT(self):
-        self.check_size('TIMEOUT', 5)
+    def test_SERIAL_TIMEOUT(self):
+        self.check_int('SERIAL_TIMEOUT', 1)
+
+    def test_SERIAL_RETRIES(self):
+        self.check_int('SERIAL_RETRIES', 3)
+
+    def test_IPC_TIMEOUT(self):
+        self.check_int('IPC_TIMEOUT', 4)
+        self.assertEqual(common.IPC_TIMEOUT,
+            (common.SERIAL_RETRIES + 1) * common.SERIAL_TIMEOUT
+        )
 
     def test_SIGNATURE(self):
-        self.check_size('SIGNATURE', 64)
+        self.check_int('SIGNATURE', 64)
 
     def test_PUBKEY(self):
-        self.check_size('PUBKEY', 32)
+        self.check_int('PUBKEY', 32)
 
     def test_COUNTER(self):
-        self.check_size('COUNTER', 8)
+        self.check_int('COUNTER', 8)
 
     def test_TIMESTAMP(self):
-        self.check_size('TIMESTAMP', 8)
+        self.check_int('TIMESTAMP', 8)
 
     def test_GENESIS(self):
-        self.check_size('GENESIS', 96)
+        self.check_int('GENESIS', 96)
         self.assertEqual(common.GENESIS,
             common.SIGNATURE + common.PUBKEY
         )
 
     def test_PREFIX(self):
-        self.check_size('PREFIX', 176)
+        self.check_int('PREFIX', 176)
         self.assertEqual(common.PREFIX,
             common.GENESIS + common.SIGNATURE + common.COUNTER + common.TIMESTAMP
         )
 
     def test_DIGEST(self):
-        self.check_size('DIGEST', 48)
+        self.check_int('DIGEST', 48)
 
     def test_REQUEST(self):
-        self.check_size('REQUEST', 224)
+        self.check_int('REQUEST', 224)
         self.assertEqual(common.REQUEST,
             common.PREFIX + common.DIGEST
         )
 
     def test_RESPONSE(self):
-        self.check_size('RESPONSE', 400)
+        self.check_int('RESPONSE', 400)
         self.assertEqual(common.RESPONSE,
             common.PREFIX + common.REQUEST
         )

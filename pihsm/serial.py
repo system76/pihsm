@@ -16,10 +16,10 @@
 
 
 import logging
-import time
 
 from .common import (
-    TIMEOUT,
+    SERIAL_TIMEOUT,
+    SERIAL_RETRIES,
     REQUEST,
     RESPONSE,
     b32enc,
@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 def open_serial(port, SerialClass):
     return SerialClass(port,
         baudrate=115200,
-        timeout=TIMEOUT,
+        timeout=SERIAL_TIMEOUT,
     )
 
 
@@ -62,11 +62,15 @@ class SerialServer:
         self.private_client = private_client
 
     def serve_forever(self):
-        while True:
-            request = read_serial(self.ttl, REQUEST)
-            if request is not None:
-                response = self.handle_request(request)
-                self.ttl.write(response)
+        try:
+            while True:
+                request = read_serial(self.ttl, REQUEST)
+                if request is not None:
+                    response = self.handle_request(request)
+                    self.ttl.write(response)
+        except:
+            log.exception('Error in SerialServer:')
+            raise
 
     def handle_request(self, request):
         log_request(request)
@@ -81,16 +85,15 @@ class SerialClient:
     def __init__(self, ttl):
         self.ttl = ttl
 
-    def make_request(self, request, retries=3):
+    def make_request(self, request):
         log_request(request)
-        for i in range(retries):
+        for i in range(SERIAL_RETRIES):
             self.ttl.write(request)
             response = read_serial(self.ttl, RESPONSE)
             if response is not None:
                 log_response(response)
                 assert get_message(response) == request
                 return response
-            log.warning('Retry %d', i)
-            time.sleep(1)
+            log.warning('Retry %d', i + 1)
         raise Exception('failed to make serial request')
 
