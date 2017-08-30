@@ -255,7 +255,7 @@ class TestClientServer(TestCase):
         self.assertIs(server.sock, sock)
         self.assertIs(server.serial_client, serial_client)
         self.assertIs(server.signer, signer)
-        self.assertIs(server.fail, True)
+        self.assertIs(server.fail, False)
         self.assertEqual(sock._calls, [])
         self.assertEqual(serial_client._calls, [])
         self.assertEqual(signer.counter, 0)

@@ -87,18 +87,21 @@ class SerialClient:
         self.ttl = ttl
 
     def make_request(self, request):
+        b32 = b32enc(request[-48:])
         for i in range(SERIAL_RETRIES):
             log_request(request,
-                'Serial Request Attempt {}/{}'.format(i + 1, SERIAL_RETRIES)
+                '--> {} {}/{}'.format(b32, i + 1, SERIAL_RETRIES)
             )
 
             # First drain the read buffer:
             self.ttl.read(RESPONSE)
 
+            # Write the request, attempt to read response:
             self.ttl.write(request)
             response = read_serial(self.ttl, RESPONSE)
+
             if response is not None:
-                log_response(response, 'Serial Response')
+                log_response(response, '<-- {}'.format(b32))
                 assert get_message(response) == request
                 return response
         raise Exception('failed to make serial request')

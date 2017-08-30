@@ -116,6 +116,7 @@ class DisplayServer(Server):
 
 class ClientServer(Server):
     __slots__ = ('serial_client', 'signer')
+    fail = False
 
     def __init__(self, sock, serial_client, signer):
         super().__init__(sock, 48)
@@ -128,7 +129,6 @@ class ClientServer(Server):
         response = self.serial_client.make_request(request)
         verify_message(response)
         assert response.endswith(request)
-        log_response(response)
         self.signer.store.write(response)
         return response
 
