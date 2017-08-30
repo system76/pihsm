@@ -33,6 +33,7 @@ def open_activated_socket(fd=3):
 
 class Server:
     __slots__ = ('sock', 'sizes', 'max_size')
+    fail = True
 
     def __init__(self, sock, *sizes):
         for s in sizes:
@@ -49,6 +50,8 @@ class Server:
                 self.handle_connection(sock)
             except:
                 log.exception('Error handling request:')
+                if self.fail is True:
+                    raise
             finally:
                 sock.close()
 
@@ -72,6 +75,7 @@ class Server:
 
 class PrivateServer(Server):
     __slots__ = ('display_client', 'signer')
+    fail = False
 
     def __init__(self, sock, display_client, signer):
         super().__init__(sock, 224)
@@ -98,6 +102,7 @@ class DisplayServer(Server):
         self.manager = manager
 
     def handle_request(self, request):
+        assert len(request) in (96, 400)
         verify_message(request)
         self.manager.update_screens(request)
         return compute_digest(request)
@@ -111,11 +116,14 @@ class ClientServer(Server):
         self.serial_client = serial_client
         self.signer = signer
 
-    def handle_request(self, digest):
-        request = self.signer.sign(digest)
+    def handle_request(self, digest, timestamp=None):
+        assert len(digest) == 48
+        request = self.signer.sign(digest, timestamp)
         response = self.serial_client.make_request(request)
-        self.signer.store.write(response)
+        verify_message(response)
+        assert response.endswith(request)
         log_response(response)
+        self.signer.store.write(response)
         return response
 
 

@@ -92,5 +92,5 @@ class SerialClient:
                 return response
             log.warning('Retry %d', i)
             time.sleep(1)
-        assert False
+        raise Exception('failed to make serial request')
 

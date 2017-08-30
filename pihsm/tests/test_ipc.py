@@ -20,8 +20,8 @@ import socket
 
 from nacl.exceptions import BadSignatureError
 
-from .helpers import iter_permutations, TempDir
-from ..sign import Signer
+from .helpers import iter_permutations, random_u64, TempDir
+from ..sign import Signer, build_signing_form
 from ..common import compute_digest
 from .. import verify
 from  .. import ipc
@@ -42,11 +42,29 @@ class MockSocket:
         return len(src)
 
 
+class MockClient:
+    def __init__(self, *returns):
+        self._returns = list(returns)
+        self._calls = []
+
+    def make_request(self, request):
+        self._calls.append(request)
+        return self._returns.pop(0)
+
+
 class MockDisplayClient:
     def __init__(self):
         self._calls = []
 
     def make_request(self, request):
+        self._calls.append(request)
+
+
+class MockManager:
+    def __init__(self):
+        self._calls = []
+
+    def update_screens(self, request):
         self._calls.append(request)
 
 
@@ -57,6 +75,7 @@ class TestServer(TestCase):
         self.assertIs(server.sock, sock)
         self.assertEqual(server.sizes, (96, 400))
         self.assertEqual(server.max_size, 400)
+        self.assertIs(server.fail, True)
 
     def test_handle_connection(self):
         server = ipc.Server(None, 96, 224, 400)
@@ -114,6 +133,10 @@ class TestPrivateServer(TestCase):
         self.assertIs(server.sock, sock)
         self.assertIs(server.display_client, display_client)
         self.assertIs(server.signer, signer)
+        self.assertIs(server.fail, False)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(display_client._calls, [])
+        self.assertEqual(signer.counter, 0)
 
     def test_handle_request(self):
         sock = MockSocket()
@@ -184,6 +207,79 @@ class TestPrivateServer(TestCase):
         self.assertEqual(display_client._calls, [response1, response2])
 
 
+class TestDisplayServer(TestCase):
+    def test_init(self):
+        sock = MockSocket()
+        manager = MockManager()
+        server = ipc.DisplayServer(sock, manager)
+        self.assertIs(server.sock, sock)
+        self.assertIs(server.manager, manager)
+        self.assertIs(server.fail, True)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(manager._calls, [])
+
+    def test_handle_request(self):
+        sock = MockSocket()
+        manager = MockManager()
+        server = ipc.DisplayServer(sock, manager)
+
+        s = Signer()
+        r0 = s.genesis
+        r1 = s.sign(os.urandom(224))
+        r2 = s.sign(os.urandom(224))
+
+        accum = []
+        for r in [r0, r1, r2]:
+            for bad in iter_permutations(r):
+                with self.assertRaises(BadSignatureError) as cm:
+                    server.handle_request(bad)
+                self.assertEqual(str(cm.exception),
+                    'Signature was forged or corrupt'
+                )
+                self.assertEqual(sock._calls, [])
+                self.assertEqual(manager._calls, accum)
+            self.assertEqual(server.handle_request(r),
+                compute_digest(r)
+            )
+            self.assertEqual(sock._calls, [])
+            self.assertEqual(manager._calls, accum + [r])
+            accum.append(r)
+
+
+class TestClientServer(TestCase):
+    def test_init(self):
+        sock = MockSocket()
+        serial_client = MockClient()
+        signer = Signer()
+        server = ipc.ClientServer(sock, serial_client, signer)
+        self.assertIs(server.sock, sock)
+        self.assertIs(server.serial_client, serial_client)
+        self.assertIs(server.signer, signer)
+        self.assertIs(server.fail, True)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(serial_client._calls, [])
+        self.assertEqual(signer.counter, 0)
+
+    def test_handle_request(self):
+        s1 = Signer()
+        digest = os.urandom(48)
+        ts = random_u64()
+        sf = build_signing_form(s1.public, s1.previous, 1, ts, digest)
+        request = bytes(s1.key.sign(sf))
+
+        s2 = Signer()
+        response = s2.sign(request)
+
+        sock = MockSocket()
+        serial_client = MockClient(response)
+        server = ipc.ClientServer(sock, serial_client, s1)
+        self.assertEqual(s1.counter, 0)
+        self.assertEqual(server.handle_request(digest, ts), response)
+        self.assertEqual(s1.counter, 1)
+        self.assertEqual(sock._calls, [])
+        self.assertEqual(serial_client._calls, [request])
+
+
 def _run_server(queue, filename, build_func, *build_args):
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -238,13 +334,8 @@ def _build_display_server(sock):
     return ipc.DisplayServer(sock, MockDisplayManager())
 
 
-class MockClient:
-    def make_request(self, request):
-        pass
-
-
 def _build_private_server(sock):
-    return ipc.PrivateServer(sock, MockClient(), Signer())
+    return ipc.PrivateServer(sock, MockDisplayClient(), Signer())
 
 
 class TestLiveIPC(TestCase):
