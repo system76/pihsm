@@ -193,7 +193,7 @@ def _mk_screens_0():
 
 def _mk_screens_96(tail):
     assert type(tail) is bytes and len(tail) == 96
-    log_genesis(tail, 'Diplaying genesis screens')
+    log_genesis(tail)
     return (
         _mk_status_lines(),
         _mk_pubkey_lines(get_pubkey(tail)),
@@ -202,7 +202,7 @@ def _mk_screens_96(tail):
 
 def _mk_screens_400(tail):
     assert type(tail) is bytes and len(tail) == 400
-    log_response(tail, 'Displaying latest signing response')
+    log_response(tail)
     return (
         _mk_time_and_counter_lines(get_counter(tail)),
         _mk_pubkey_lines(get_pubkey(tail)),

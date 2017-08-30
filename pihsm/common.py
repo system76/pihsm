@@ -114,25 +114,25 @@ def b32dec(string):
 
 
 GENESIS_TEMPLATE = '\n\t'.join([
-    '%s:',
+    'Genesis:',
     'Genesis.signature: %s',
-    'Genesis.pubkey: %s',
+    'Genesis.public: %s',
 ])
 
 
-def log_genesis(genesis, annotation):
+def log_genesis(genesis):
     sig = get_signature(genesis)
     pub = get_pubkey(genesis)
-    log.info(GENESIS_TEMPLATE, annotation,
+    log.info(GENESIS_TEMPLATE,
         b32enc(sig),
         b32enc(pub),
     )
 
 
 REQUEST_TEMPLATE = '\n\t'.join([
-    '%s:',
+    'Request:',
     'Request.signature: %s',
-    'Request.pubkey: %s',
+    'Request.public: %s',
     'Request.previous: %s',
     'Request.counter: %s',
     'Request.timestamp: %s',
@@ -140,9 +140,9 @@ REQUEST_TEMPLATE = '\n\t'.join([
 ])
 
 
-def log_request(request, annotation):
+def log_request(request):
     r = unpack_signed(request)
-    log.info(REQUEST_TEMPLATE, annotation,
+    log.info(REQUEST_TEMPLATE,
         b32enc(r.signature),
         b32enc(r.pubkey),
         b32enc(r.previous),
@@ -153,26 +153,25 @@ def log_request(request, annotation):
 
 
 RESPONSE_TEMPLATE = '\n\t'.join([
-    '%s:',
+    'Response:',
     'Response.signature: %s',
-    'Response.pubkey: %s',
+    'Response.public: %s',
     'Response.previous: %s',
     'Response.counter: %s',
     'Response.timestamp: %s',
-
     'Response.request.signature: %s',
-    'Response.request.pubkey: %s',
+    'Response.request.public: %s',
     'Response.request.previous: %s',
     'Response.request.counter: %s',
     'Response.request.timestamp: %s',
-    'Response.request.sha384: %s',
+    'Response.request.digest: %s',
 ])
 
 
-def log_response(request, annotation):
+def log_response(request):
     a = unpack_signed(request)
     b = unpack_signed(a.message)
-    log.info(RESPONSE_TEMPLATE, annotation,
+    log.info(RESPONSE_TEMPLATE,
         b32enc(a.signature),
         b32enc(a.pubkey),
         b32enc(a.previous),

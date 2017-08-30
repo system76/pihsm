@@ -61,9 +61,9 @@ class SerialServer:
                 self.ttl.write(response)
 
     def handle_request(self, request):
-        log_request(request, 'Signing Request')
+        log_request(request)
         response = self.private_client.make_request(request)
-        log_response(response, 'Signing Response')
+        log_response(response)
         return response
 
 
@@ -74,12 +74,12 @@ class SerialClient:
         self.ttl = ttl
 
     def make_request(self, request, retries=10):
-        log_request(request, 'Signing Request')
+        log_request(request)
         for i in range(retries):
             self.ttl.write(request)
             response = read_serial(self.ttl, RESPONSE)
             if response is not None:
-                log_response(response, 'Signing Response')
+                log_response(response)
                 assert get_message(response) == request
                 return response
             log.warning('Retry %d', i)

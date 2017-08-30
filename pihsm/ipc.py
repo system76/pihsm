@@ -82,7 +82,7 @@ class PrivateServer(Server):
         verify_message(request)
         response = self.signer.sign(request)
         self.display_client.make_request(response)
-        log_response(response, 'Signing Response')
+        log_response(response)
         return response
 
 
@@ -109,7 +109,10 @@ class ClientServer(Server):
 
     def handle_request(self, digest):
         request = self.signer.sign(digest)
-        return self.serial_client.make_request(request)
+        response = self.serial_client.make_request(request)
+        self.signer.store.write(response)
+        log_response(response)
+        return response
 
 
 class Client:

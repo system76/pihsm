@@ -17,10 +17,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
+import os
 from os import path
+import time
 
 import pihsm
-from pihsm.common import compute_digest, b32enc
+from pihsm.common import compute_digest, log_response
 from pihsm.ipc import ClientClient
 
 
@@ -37,8 +39,9 @@ filename = path.abspath(args.filename)
 with open(filename, 'rb', 0) as fp:
     content = fp.read()
 digest = compute_digest(content)
-print(b32enc(digest))
     
-
 client = ClientClient()
-client.make_request(digest)
+for i in range(100):
+    response = client.make_request(os.urandom(48))
+    log_response(response)
+    time.sleep(1)

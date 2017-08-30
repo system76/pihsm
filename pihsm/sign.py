@@ -99,7 +99,6 @@ class Signer:
         self.counter += 1
         signing_form = self.build_signing_form(timestamp, message)
         self.tail = bytes(self.key.sign(signing_form))
-        log.info('Signature %d: %s', self.counter, b32enc(self.previous))
         self.store.write(self.tail)
         return self.tail
 
