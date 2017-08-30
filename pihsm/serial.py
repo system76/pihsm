@@ -34,6 +34,7 @@ log = logging.getLogger(__name__)
 
 
 def open_serial(port, SerialClass):
+    log.info('Opening serial device %r', port)
     return SerialClass(port,
         baudrate=115200,
         timeout=SERIAL_TIMEOUT,
@@ -86,14 +87,19 @@ class SerialClient:
         self.ttl = ttl
 
     def make_request(self, request):
-        log_request(request)
         for i in range(SERIAL_RETRIES):
+            log_request(request,
+                'Serial Request Attempt {}/{}'.format(i + 1, SERIAL_RETRIES)
+            )
+
+            # First drain the read buffer:
+            self.ttl.read(RESPONSE)
+
             self.ttl.write(request)
             response = read_serial(self.ttl, RESPONSE)
             if response is not None:
-                log_response(response)
+                log_response(response, 'Serial Response')
                 assert get_message(response) == request
                 return response
-            log.warning('Retry %d', i + 1)
         raise Exception('failed to make serial request')
 

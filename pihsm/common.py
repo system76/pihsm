@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 
 SERIAL_TIMEOUT = 1
 SERIAL_RETRIES = 3
-IPC_TIMEOUT = SERIAL_TIMEOUT * (SERIAL_RETRIES + 1)
+IPC_TIMEOUT = SERIAL_TIMEOUT * SERIAL_RETRIES * 2
 
 SIGNATURE = 64
 PUBKEY = 32
@@ -118,24 +118,23 @@ def b32dec(string):
 
 
 GENESIS_TEMPLATE = '\n  '.join([
-    'Genesis:',
-    'Genesis.signature: %s',
+    '%s:\nGenesis.signature: %s',
     'Genesis.public: %s',
 ])
 
 
-def log_genesis(genesis):
+def log_genesis(genesis, label='Genesis'):
     sig = get_signature(genesis)
     pub = get_pubkey(genesis)
     log.info(GENESIS_TEMPLATE,
+        label,
         b32enc(sig),
         b32enc(pub),
     )
 
 
 REQUEST_TEMPLATE = '\n  '.join([
-    'Request:',
-    'Request.signature: %s',
+    '%s:\nRequest.signature: %s',
     'Request.public: %s',
     'Request.previous: %s',
     'Request.counter: %s',
@@ -144,9 +143,10 @@ REQUEST_TEMPLATE = '\n  '.join([
 ])
 
 
-def log_request(request):
+def log_request(request, label='Request'):
     r = unpack_signed(request)
     log.info(REQUEST_TEMPLATE,
+        label,
         b32enc(r.signature),
         b32enc(r.pubkey),
         b32enc(r.previous),
@@ -157,8 +157,7 @@ def log_request(request):
 
 
 RESPONSE_TEMPLATE = '\n  '.join([
-    'Response:',
-    'Response.signature: %s',
+    '%s:\nResponse.signature: %s',
     'Response.public: %s',
     'Response.previous: %s',
     'Response.counter: %s',
@@ -172,10 +171,11 @@ RESPONSE_TEMPLATE = '\n  '.join([
 ])
 
 
-def log_response(request):
+def log_response(request, label='Response'):
     a = unpack_signed(request)
     b = unpack_signed(a.message)
     log.info(RESPONSE_TEMPLATE,
+        label,
         b32enc(a.signature),
         b32enc(a.pubkey),
         b32enc(a.previous),
