@@ -18,7 +18,15 @@
 import logging
 import time
 
-from .common import b32enc, REQUEST, RESPONSE, log_request, log_response, get_message
+from .common import (
+    TIMEOUT,
+    REQUEST,
+    RESPONSE,
+    b32enc,
+    log_request,
+    log_response,
+    get_message,
+)
 from .verify import isvalid, get_pubkey
 
 
@@ -28,7 +36,7 @@ log = logging.getLogger(__name__)
 def open_serial(port, SerialClass):
     return SerialClass(port,
         baudrate=57600,
-        timeout=5
+        timeout=TIMEOUT,
     )
 
 
@@ -73,7 +81,7 @@ class SerialClient:
     def __init__(self, ttl):
         self.ttl = ttl
 
-    def make_request(self, request, retries=10):
+    def make_request(self, request, retries=3):
         log_request(request)
         for i in range(retries):
             self.ttl.write(request)
@@ -83,6 +91,6 @@ class SerialClient:
                 assert get_message(response) == request
                 return response
             log.warning('Retry %d', i)
-            time.sleep(7)
+            time.sleep(1)
         assert False
 

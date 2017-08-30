@@ -26,6 +26,8 @@ Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp messa
 log = logging.getLogger(__name__)
 
 
+TIMEOUT = 5
+
 SIGNATURE = 64
 PUBKEY = 32
 COUNTER = 8

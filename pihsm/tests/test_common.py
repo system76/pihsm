@@ -54,6 +54,9 @@ class TestConstants(TestCase):
         self.assertIs(type(value), int)
         self.assertEqual(value, expected)
 
+    def test_TIMEOUT(self):
+        self.check_size('TIMEOUT', 5)
+
     def test_SIGNATURE(self):
         self.check_size('SIGNATURE', 64)
 

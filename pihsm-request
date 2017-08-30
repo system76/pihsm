@@ -43,6 +43,6 @@ client = ClientClient()
 response = client.make_request(digest)
 log_response(response)
 
-for i in range(100):
+for i in range(500):
     response = client.make_request(os.urandom(48))
     log_response(response)
