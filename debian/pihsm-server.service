@@ -5,6 +5,7 @@ Description=pihsm server
 User=pihsm-server
 ExecStart=/usr/bin/pihsm-server
 Restart=always
+RestartSec=2s
 
 [Install]
 WantedBy=multi-user.target

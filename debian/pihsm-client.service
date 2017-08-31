@@ -7,6 +7,7 @@ Requires=pihsm-client.socket
 User=pihsm-client
 ExecStart=/usr/bin/pihsm-client
 Restart=always
+RestartSec=2s
 
 [Install]
 WantedBy=multi-user.target

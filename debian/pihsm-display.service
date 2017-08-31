@@ -5,6 +5,7 @@ Description=PiHSM Display Service
 User=pihsm-display
 ExecStart=/usr/bin/pihsm-display
 Restart=always
+RestartSec=2s
 
 [Install]
 WantedBy=multi-user.target
