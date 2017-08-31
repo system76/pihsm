@@ -52,6 +52,14 @@ def iter_permutations(data):
             yield bytes(template)
 
 
+class MockBus:
+    def __init__(self):
+        self._calls = []
+
+    def write_byte(self, addr, bits):
+        self._calls.append((addr, bits))
+
+
 class MockStorage:
     def __init__(self):
         self._store = {}

@@ -251,37 +251,40 @@ class DisplayLoop:
         self.lcd = lcd
         self.filename = filename
         self.last = None
+        self.screens = None
+
+    def run_first(self):
+        self.lcd.lcd_init()
+        self.screens = _mk_screens_0()
+        self.play_screens()
+
+    def play_screens(self):
+        if self.screens is None:
+            log.warning('No screens to show')
+            time.sleep(5)
+        else:
+            self.lcd.lcd_screens(*self.screens)
+
+    def update_tail(self, tail):
+        if tail != self.last:
+            self.screens = tail_to_screens(tail)
+        self.last = tail
+
+    def update_tail_if_needed(self):
+        try:
+            fp = open(self.filename, 'rb', 0)
+            self.update_tail(fp.read(RESPONSE))
+        except FileNotFoundError:
+            log.warning('Not found: %r', self.filename)
+
+    def run_once(self):
+        log.info('run_once()')
+        time.sleep(1)
+        self.update_tail_if_needed()
+        self.play_screens()
 
     def run_forever(self):
         self.run_first()
         while True:
             self.run_once()
-
-    def run_n_times(self, n):
-        assert type(n) is int and n > 0
-        self.run_first()
-        for i in range(n):
-            self.run_once()
-
-    def run_first(self):
-        _mk_screens_0()
-        time.sleep(5)
-        #self.lcd.lcd_init()
-        #self.lcd.lcd_screens(*screens)
-
-    def run_once(self):
-        try:
-            self._run_once()
-        except:
-            log.exception('Error in DisplayLoop.run_once():')
-            time.sleep(5)
-
-    def _run_once(self):
-        with open(self.filename, 'rb', 0) as fp:
-            tail = fp.read(RESPONSE)
-            if tail != self.last:
-                tail_to_screens(tail)
-            self.last = tail
-            #self.lcd.lcd_screens()
-            
 

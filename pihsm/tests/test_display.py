@@ -17,7 +17,7 @@
 from unittest import TestCase
 import os
 
-from .helpers import random_u64
+from .helpers import random_u64, MockBus
 from ..common import b32enc
 from  .. import display
 
@@ -176,13 +176,6 @@ class TestFunctions(TestCase):
         self.assertIsInstance(screens, tuple)
         self.assertEqual(len(screens), 4)
 
-
-class MockBus:
-    def __init__(self):
-        self._calls = []
-
-    def write_byte(self, addr, bits):
-        self._calls.append((addr, bits))
 
 
 class TestLCD(TestCase):

@@ -25,9 +25,15 @@ from pihsm.display import LCD, DisplayLoop
 log = pihsm.configure_logging(__name__)
 
 
+class MockBus:
+    def write_byte(self, addr, bits):
+        pass
+
+
 # Setup I2C LCD display stuffs:
 #bus = smbus.SMBus(1)
-lcd = LCD(None)
+bus = MockBus()
+lcd = LCD(bus)
 display_loop = DisplayLoop(lcd)
 display_loop.run_forever()
 
