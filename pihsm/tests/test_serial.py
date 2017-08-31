@@ -64,6 +64,16 @@ class MockSerialFactory:
         return self._returns.pop(0)
 
 
+class MockClient:
+    def __init__(self, *returns):
+        self._returns = list(returns)
+        self._calls = []
+
+    def make_request(self, request):
+        self._calls.append(request)
+        return self._returns.pop(0)
+
+
 class TestFunctions(TestCase):
     def test_open_serial(self):
         for port in ['/dev/ttyAMA0', '/dev/ttyUSB0', random_id()]:
@@ -131,6 +141,31 @@ class TestBaseSerial(TestCase):
             'baudrate': common.SERIAL_BAUDRATE,
             'timeout': common.SERIAL_TIMEOUT,
         })
+
+
+class TestSerialServer(TestCase):
+    def test_init(self):
+        client = MockClient()
+        port = random_id()
+        server = serial.SerialServer(client, port)
+        self.assertIs(server.private_client, client)
+        self.assertIs(server.port, port)
+        self.assertIsNone(server.SerialClass)
+
+        sc = random_id()
+        server = serial.SerialServer(client, port, SerialClass=sc)
+        self.assertIs(server.private_client, client)
+        self.assertIs(server.port, port)
+        self.assertIs(server.SerialClass, sc)
+
+    def test_handle_request(self):
+        signed1 = os.urandom(common.RESPONSE)
+        client = MockClient(signed1)
+        port = random_id()        
+        server = serial.SerialServer(client, port)
+        request1 = os.urandom(common.REQUEST)
+        self.assertIs(server.handle_request(request1), signed1)
+        self.assertEqual(client._calls, [request1])
 
 
 class TestSerialClient(TestCase):

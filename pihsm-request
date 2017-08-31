@@ -45,8 +45,8 @@ response = client.make_request(digest)
 log_response(response)
 
 for j in range(500):
-    for i in range(50):
+    for i in range(100):
         response = client.make_request(os.urandom(48))
         log_response(response)
     print('sleeping', (j + 1) * 50)
-    time.sleep(10)
+    time.sleep(5)

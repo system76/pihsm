@@ -118,3 +118,4 @@ class SerialClient(BaseSerial):
         raise Exception(
             'serial request failed {!r} tries'.format(SERIAL_RETRIES)
         )
+
