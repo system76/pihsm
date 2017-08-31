@@ -114,7 +114,7 @@ class LCD:
         log.info('==== %d screens ====', len(screens))
         for (i, lines) in enumerate(screens):
             self.lcd_text_lines(*lines, msg='screens[{}][%d]: %r'.format(i))
-            time.sleep(3)
+            time.sleep(5)
 
 
 def _mk_u64_line(u64):
@@ -266,7 +266,6 @@ class DisplayLoop:
             self.update_tail(False)
 
     def run_once(self):
-        time.sleep(1)
         self.update_tail_if_needed()
         self.play_screens()
 
