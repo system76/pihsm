@@ -18,6 +18,7 @@
 import logging
 
 from .common import (
+    SERIAL_BAUDRATE,
     SERIAL_TIMEOUT,
     SERIAL_RETRIES,
     REQUEST,
@@ -39,7 +40,7 @@ def open_serial(port, SerialClass=None):
         from serial import Serial as SerialClass
     log.info('Opening serial device %r', port)
     return SerialClass(port,
-        baudrate=57600,
+        baudrate=SERIAL_BAUDRATE,
         timeout=SERIAL_TIMEOUT,
     )
 
@@ -56,6 +57,17 @@ def read_serial(ttl, size):
         return msg
     log.warning('bad signature from pubkey %s', b32enc(get_pubkey(msg)))
     return None
+
+
+class BaseSerial:
+    __slots__ = ('port', 'SerialClass')
+
+    def __init__(self, port, SerialClass=None):
+        self.port = port
+        self.SerialClass = SerialClass
+
+    def open_serial(self):
+        return open_serial(self.port, self.SerialClass)
 
 
 class SerialServer:
@@ -83,28 +95,24 @@ class SerialServer:
         return response
 
 
-class SerialClient:
-    __slots__ = ('port',)
-
-    def __init__(self, port):
-        self.port = port
-
-    def open_serial(self):
-        return open_serial(self.port)
+class SerialClient(BaseSerial):
+    __slots__ = tuple()
 
     def make_request(self, request):
         ttl = self.open_serial()
         for i in range(SERIAL_RETRIES):
             log_request_attempt(request, i, SERIAL_RETRIES)
             ttl.write(request)
+            ttl.flush()
             response = read_serial(ttl, RESPONSE)
             if response is not None:
                 log_response(response)
                 assert get_message(response) == request
                 return response
             else:
-                cruft = ttl.read(RESPONSE)
+                cruft = ttl.read(RESPONSE * 2)
                 if len(cruft) > 0:
                     log.warning('%d extra bytes read from serial', len(cruft))
-        raise Exception('failed to make serial request')
-
+        raise Exception(
+            'serial request failed {!r} tries'.format(SERIAL_RETRIES)
+        )

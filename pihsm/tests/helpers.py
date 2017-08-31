@@ -21,9 +21,19 @@ import tempfile
 import shutil
 from unittest import TestCase
 
+from .. import common
+
 
 def random_u64():
     return int.from_bytes(os.urandom(8), 'little', signed=False)
+
+
+def random_id():
+    return common.b32enc(os.urandom(15))
+
+
+def random_digest():
+    return os.urandom(common.DIGEST)
 
 
 def iter_bit_permutations(b):
