@@ -38,7 +38,6 @@
 #
 
 import time
-import threading
 import logging
 
 from .common import b32enc, log_genesis, log_response, RESPONSE
@@ -103,18 +102,19 @@ class LCD:
         for bits in data:
             self.lcd_byte(bits, LCD_CHR)
 
-    def lcd_text_lines(self, *lines):
+    def lcd_text_lines(self, *lines, msg='lines[%d]: %r'):
         self.lcd_clear()
         for (i, text) in enumerate(lines):
             if callable(text):
                 text = text()
+            log.info(msg, i, text)
             self.lcd_line(text.encode(), i)
 
     def lcd_screens(self, *screens):
-        delay = 3
-        for lines in screens:
-            self.lcd_text_lines(*lines)
-            time.sleep(delay)
+        log.info('==== %d screens ====', len(screens))
+        for (i, lines) in enumerate(screens):
+            self.lcd_text_lines(*lines, msg='screens[{}][%d]: %r'.format(i))
+            time.sleep(3)
 
 
 def _mk_u64_line(u64):
@@ -130,6 +130,15 @@ def _mk_time_line():
 
 def _mk_entropy_line():
     return _mk_u64_line(get_entropy_avail())
+
+
+def _mk_error_lines():
+    return (
+        'ERROR!'.center(20),
+        'pihsm-private crash?'.center(20),
+        'Unix Time:'.ljust(20),
+        _mk_time_line,
+    )
 
 
 def _mk_status_lines():
@@ -188,9 +197,16 @@ def _mk_genesis_screens(sig):
     return _mk_signature_screens(sig, name='Genesis')
 
 
-def _mk_screens_0():
+def _mk_init_screens():
     return (
         _mk_status_lines(),
+    )
+
+
+def _mk_screens_0():
+    log.error('pihsm-private seems to have crashed!')
+    return (
+        _mk_error_lines(),
     )
 
 
@@ -213,6 +229,8 @@ def _mk_screens_400(tail):
 
 
 def tail_to_screens(tail):
+    if tail is False:
+        return _mk_screens_0()
     assert type(tail) is bytes
     if len(tail) == 96:
         return _mk_screens_96(tail)
@@ -221,49 +239,19 @@ def tail_to_screens(tail):
     raise ValueError('bad tail length')
 
 
-class Manager:
-    __slots__ = ('lcd', 'thread', 'screens')
-
-    def __init__(self, lcd):
-        self.lcd = lcd
-        self.thread = None
-        self.screens = _mk_screens_0()
-        self.lcd.lcd_init()
-
-    def update_screens(self, tail):
-        self.screens = tail_to_screens(tail)
-
-    def start_worker_thread(self):
-        assert self.thread is None
-        self.thread = threading.Thread(
-            target=self._worker,
-            daemon=True,
-        )
-        self.thread.start()
-
-    def _worker(self):
-        while True:
-            self.lcd.lcd_screens(*self.screens)
-
-
 class DisplayLoop:
     def __init__(self, lcd, filename='/run/pihsm-private/tail'):
         self.lcd = lcd
         self.filename = filename
         self.last = None
-        self.screens = None
+        self.screens = _mk_init_screens()
 
     def run_first(self):
         self.lcd.lcd_init()
-        self.screens = _mk_screens_0()
         self.play_screens()
 
     def play_screens(self):
-        if self.screens is None:
-            log.warning('No screens to show')
-            time.sleep(5)
-        else:
-            self.lcd.lcd_screens(*self.screens)
+        self.lcd.lcd_screens(*self.screens)
 
     def update_tail(self, tail):
         if tail != self.last:
@@ -275,7 +263,7 @@ class DisplayLoop:
             fp = open(self.filename, 'rb', 0)
             self.update_tail(fp.read(RESPONSE))
         except FileNotFoundError:
-            log.warning('Not found: %r', self.filename)
+            self.update_tail(False)
 
     def run_once(self):
         time.sleep(1)

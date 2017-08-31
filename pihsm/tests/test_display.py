@@ -164,6 +164,54 @@ class TestFunctions(TestCase):
             ),
         ))
 
+    def test_mk_status_lines(self):
+        lines = display._mk_status_lines()
+        self.assertIs(type(lines), tuple)
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines,
+            (
+                'Unix Time:'.ljust(20),
+                display._mk_time_line,
+                'Entropy Available:'.ljust(20),
+                display._mk_entropy_line,
+            )
+        )
+
+    def test_mk_error_lines(self):
+        lines = display._mk_error_lines()
+        self.assertIs(type(lines), tuple)
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines,
+            (
+                'ERROR!'.center(20),
+                'pihsm-private crash?'.center(20),
+                'Unix Time:'.ljust(20),
+                display._mk_time_line,
+            )
+        )
+
+    def test_mk_init_screens(self):
+        screens = display._mk_init_screens()
+        self.assertIs(type(screens), tuple)
+        self.assertEqual(len(screens), 1)
+        s0 = screens[0]
+        self.assertIs(type(s0), tuple)
+        self.assertEqual(len(s0), 4)
+        self.assertEqual(screens,
+            (display._mk_status_lines(),)
+        )
+
+    def test_mk_screens_0(self):
+        screens = display._mk_screens_0()
+        self.assertIs(type(screens), tuple)
+        self.assertEqual(len(screens), 1)
+        s0 = screens[0]
+        self.assertIs(type(s0), tuple)
+        self.assertEqual(len(s0), 4)
+        self.assertEqual(screens,
+            (display._mk_error_lines(),)
+        )
+
     def test_mk_screens_96(self):
         tail = os.urandom(96)
         screens = display._mk_screens_96(tail)
@@ -175,7 +223,6 @@ class TestFunctions(TestCase):
         screens = display._mk_screens_400(tail)
         self.assertIsInstance(screens, tuple)
         self.assertEqual(len(screens), 4)
-
 
 
 class TestLCD(TestCase):
@@ -237,25 +284,34 @@ class MockLCD:
         self._calls.append(('lcd_screens', screens))
 
 
-class TestManager(TestCase):
+class TestDisplayLoop(TestCase):
     def test_init(self):
         lcd = MockLCD()
-        manager = display.Manager(lcd)
-        self.assertIs(manager.lcd, lcd)
-        self.assertIsNone(manager.thread)
-        self.assertEqual(manager.screens, display._mk_screens_0())
-        self.assertEqual(lcd._calls, ['lcd_init'])
+        dloop = display.DisplayLoop(lcd)
+        self.assertIs(dloop.lcd, lcd)
+        self.assertEqual(dloop.filename, '/run/pihsm-private/tail')
+        self.assertIsNone(dloop.last)
+        self.assertEqual(dloop.screens, display._mk_init_screens())
+        self.assertEqual(lcd._calls, [])
 
-    def test_update_screens(self):
+    def test_run_first(self):
         lcd = MockLCD()
-        manager = display.Manager(lcd)
-        pairs = (
-            (96, display._mk_screens_96),
-            (400, display._mk_screens_400),
-        )
-        for (size, func) in pairs:
-            tail = os.urandom(size)
-            self.assertIsNone(manager.update_screens(tail))
-            self.assertEqual(manager.screens, func(tail))
-        self.assertEqual(lcd._calls, ['lcd_init'])
+        dloop = display.DisplayLoop(lcd)
+        screens = dloop.screens
+        self.assertIsNone(dloop.run_first())
+        self.assertEqual(lcd._calls, [
+            'lcd_init',
+            ('lcd_screens', screens),
+        ])
+        self.assertIs(dloop.screens, screens)
+
+    def test_play_screens(self):
+        lcd = MockLCD()
+        dloop = display.DisplayLoop(lcd)
+        screens = dloop.screens
+        self.assertIsNone(dloop.play_screens())
+        self.assertEqual(lcd._calls, [
+            ('lcd_screens', screens),
+        ])
+        self.assertIs(dloop.screens, screens)
 
