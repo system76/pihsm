@@ -20,12 +20,11 @@ import socket
 
 from nacl.exceptions import BadSignatureError
 
-from .helpers import iter_permutations, random_u64, TempDir
+from .helpers import iter_permutations, random_u64, random_digest, TempDir
 from ..sign import Signer, build_signing_form
-from ..common import compute_digest
+from .. import common
 from .. import verify
 from  .. import ipc
-
 
 
 class MockSocket:
@@ -70,58 +69,34 @@ class MockManager:
 
 class TestServer(TestCase):
     def test_init(self):
-        sock = MockSocket()
-        server = ipc.Server(sock, 96, 400)
-        self.assertIs(server.sock, sock)
-        self.assertEqual(server.sizes, (96, 400))
-        self.assertEqual(server.max_size, 400)
-        self.assertIs(server.fail, True)
+        for size in [common.DIGEST, common.REQUEST]:
+            sock = MockSocket()
+            server = ipc.Server(sock, size)
+            self.assertIs(server.sock, sock)
+            self.assertIs(server.request_size, size)
 
     def test_handle_connection(self):
-        server = ipc.Server(None, 96, 224, 400)
+        for size in [common.DIGEST, common.REQUEST]:
+            server = ipc.Server(None, size)
 
-        # Bad request size:
-        for bad in [0, 1, 95, 97, 223, 225, 399, 401]:
-            sock = MockSocket(os.urandom(bad))
-            with self.assertRaises(ValueError) as cm:
-                server.handle_connection(sock)
-            self.assertEqual(str(cm.exception),
-                'bad request size {!r} not in (96, 224, 400)'.format(bad)
-            )
-            self.assertEqual(sock._calls, [('recv', 400)])
-
-        # Bad signature:
-        for size in server.sizes:
-            bad = os.urandom(size)
-            sock = MockSocket(bad)
-            with self.assertRaises(BadSignatureError) as cm:
-                server.handle_connection(sock)
-            self.assertEqual(str(cm.exception),
-                'Signature was forged or corrupt',
-            )
-            self.assertEqual(sock._calls, [('recv', 400)])
-
-        # Good signature:
-        s = Signer()
-        genesis = s.genesis
-        signed1 = s.sign(os.urandom(224))
-        signed2 = s.sign(os.urandom(48))
-        for good in [genesis, signed1, signed2]:
-            self.assertIn(len(good), server.sizes)
-            sock = MockSocket(good)
-            self.assertIsNone(server.handle_connection(sock), good)
-            self.assertEqual(sock._calls,
-                [('recv', 400), ('send', compute_digest(good))]
-            )
-
-            # But should still fail under any permutation:
-            for permutation in iter_permutations(good):
-                sock = MockSocket(permutation, 0)
-                with self.assertRaises(BadSignatureError) as cm:
+            # Bad size:
+            for bad in [size - 1, size + 1]:
+                sock = MockSocket(os.urandom(bad))
+                with self.assertRaises(ValueError) as cm:
                     server.handle_connection(sock)
                 self.assertEqual(str(cm.exception),
-                    'Signature was forged or corrupt',
+                    'bad request: expected {} bytes; got {}'.format(size, bad)
                 )
+                self.assertEqual(sock._calls, [('recv', size)])
+
+            # Good size, should be handed off to Server.handle_request():
+            sock = MockSocket(os.urandom(size))
+            with self.assertRaises(NotImplementedError) as cm:
+                server.handle_connection(sock)
+            self.assertEqual(str(cm.exception),
+                'Server.handle_request(request)'
+            )
+            self.assertEqual(sock._calls, [('recv', size)])
 
 
 class TestPrivateServer(TestCase):
@@ -133,7 +108,6 @@ class TestPrivateServer(TestCase):
         self.assertIs(server.sock, sock)
         self.assertIs(server.display_client, display_client)
         self.assertIs(server.signer, signer)
-        self.assertIs(server.fail, False)
         self.assertEqual(sock._calls, [])
         self.assertEqual(display_client._calls, [])
         self.assertEqual(signer.counter, 0)
@@ -220,7 +194,6 @@ class TestClientServer(TestCase):
         self.assertIs(server.sock, sock)
         self.assertIs(server.serial_client, serial_client)
         self.assertIs(server.signer, signer)
-        self.assertIs(server.fail, False)
         self.assertEqual(sock._calls, [])
         self.assertEqual(serial_client._calls, [])
         self.assertEqual(signer.counter, 0)
@@ -293,6 +266,17 @@ class TempServer:
 def _build_private_server(sock):
     return ipc.PrivateServer(sock, MockDisplayClient(), Signer())
 
+class MockSerialClient:
+    def __init__(self):
+        self._signer = Signer()
+
+    def make_request(self, request):
+        return self._signer.sign(request)
+
+
+def _build_client_server(sock):
+    return ipc.ClientServer(sock, MockSerialClient(), Signer())
+
 
 class TestLiveIPC(TestCase):
     def test_private_ipc(self):
@@ -316,4 +300,13 @@ class TestLiveIPC(TestCase):
 
         self.assertNotEqual(b1[:176], b2[:176])
         self.assertEqual(verify.get_pubkey(b1), verify.get_pubkey(b2))
+
+    def test_request_ipc(self):
+        server = TempServer(_build_client_server)        
+        client = ipc.ClientClient(server.filename)
+        for i in range(100):
+            digest = random_digest()
+            response = client.make_request(digest)
+            self.assertTrue(response.endswith(digest))
+
 

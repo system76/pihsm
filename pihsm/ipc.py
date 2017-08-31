@@ -20,7 +20,6 @@ import socket
 
 from .common import (
     IPC_TIMEOUT,
-    compute_digest,
     log_response,
     get_signature,
     b32enc,
@@ -38,15 +37,12 @@ def open_activated_socket(fd=3):
 
 
 class Server:
-    __slots__ = ('sock', 'sizes', 'max_size')
-    fail = True
+    __slots__ = ('sock', 'request_size')
 
-    def __init__(self, sock, *sizes):
-        for s in sizes:
-            assert type(s) is int and s > 0
+    def __init__(self, sock, request_size):
+        assert type(request_size) is int and request_size > 0
         self.sock = sock
-        self.sizes = sizes
-        self.max_size = max(sizes)
+        self.request_size = request_size
 
     def serve_forever(self):
         while True:
@@ -56,32 +52,29 @@ class Server:
                 self.handle_connection(sock)
             except:
                 log.exception('Error handling request:')
-                if self.fail is True:
-                    raise
             finally:
                 sock.close()
 
     def handle_connection(self, sock):
-        request = sock.recv(self.max_size)
+        request = sock.recv(self.request_size)
         size = len(request)
-        if size not in self.sizes:
+        if size != self.request_size:
             raise ValueError(
-                'bad request size {!r} not in {!r}'.format(size, self.sizes)
+                'bad request: expected {} bytes; got {}'.format(
+                    self.request_size, size
+                )
             )
-        log.debug('%s byte request', len(request))
-
         response = self.handle_request(request)
-        log.debug('%s byte response', len(response))
         sock.send(response)
 
     def handle_request(self, request):
-        verify_message(request)
-        return compute_digest(request)
+        raise NotImplementedError(
+            '{}.handle_request(request)'.format(self.__class__.__name__)
+        )
 
 
 class PrivateServer(Server):
     __slots__ = ('display_client', 'signer')
-    fail = False
 
     def __init__(self, sock, display_client, signer):
         super().__init__(sock, 224)
@@ -102,7 +95,6 @@ class PrivateServer(Server):
 
 class ClientServer(Server):
     __slots__ = ('serial_client', 'signer')
-    fail = False
 
     def __init__(self, sock, serial_client, signer):
         super().__init__(sock, 48)
