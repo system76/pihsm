@@ -4,9 +4,10 @@ After=network.target pihsm-private.socket
 Requires=pihsm-private.socket
 
 [Service]
+RuntimeDirectory=pihsm-private
 User=pihsm-private
 ExecStart=/usr/bin/pihsm-private
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

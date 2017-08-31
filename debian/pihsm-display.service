@@ -1,12 +1,10 @@
 [Unit]
 Description=PiHSM Display Service
-After=network.target pihsm-display.socket
-Requires=pihsm-display.socket
 
 [Service]
 User=pihsm-display
 ExecStart=/usr/bin/pihsm-display
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

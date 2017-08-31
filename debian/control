@@ -54,7 +54,6 @@ Package: pihsm-private
 Architecture: all
 Depends: ${python3:Depends}, ${misc:Depends},
     python3-pihsm (>= ${binary:Version}),
-    pihsm-display (>= ${binary:Version}),
 Description: use your Raspberry Pi as a Hardware Security Module [Signing Service]
  This turns your Raspberry Pi into a Hardware Security Module.
  .

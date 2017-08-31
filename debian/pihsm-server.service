@@ -4,7 +4,7 @@ Description=pihsm server
 [Service]
 User=pihsm-server
 ExecStart=/usr/bin/pihsm-server
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

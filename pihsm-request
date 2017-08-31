@@ -19,6 +19,7 @@
 import argparse
 import os
 from os import path
+import time
 
 import pihsm
 from pihsm.common import compute_digest, log_response
@@ -43,6 +44,9 @@ client = ClientClient()
 response = client.make_request(digest)
 log_response(response)
 
-for i in range(500):
-    response = client.make_request(os.urandom(48))
-    log_response(response)
+for j in range(500):
+    for i in range(50):
+        response = client.make_request(os.urandom(48))
+        log_response(response)
+    print('sleeping', (j + 1) * 50)
+    time.sleep(10)

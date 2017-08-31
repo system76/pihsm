@@ -16,26 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import smbus
+#import smbus
 
 import pihsm
-from pihsm.ipc import open_activated_socket, DisplayServer
-from pihsm.display import LCD, Manager
+from pihsm.display import LCD, DisplayLoop
 
 
 log = pihsm.configure_logging(__name__)
 
 
 # Setup I2C LCD display stuffs:
-bus = smbus.SMBus(1)
-lcd = LCD(bus)
-manager = Manager(lcd)
-manager.start_worker_thread()
-
-# Open systemd activated AF_UNIX socket, setup IPC server:
-sock = open_activated_socket()
-server = DisplayServer(sock, manager)
-
-# Start server:
-server.serve_forever()
+#bus = smbus.SMBus(1)
+lcd = LCD(None)
+display_loop = DisplayLoop(lcd)
+display_loop.run_forever()
 

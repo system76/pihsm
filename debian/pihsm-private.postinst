@@ -10,7 +10,6 @@ case $1 in
         if ! getent group pihsm-private-socket > /dev/null; then
             addgroup --system --quiet pihsm-private-socket
         fi
-        adduser pihsm-private pihsm-display-socket --quiet
         chmod 0770 /var/lib/pihsm/private
         chown -R pihsm-private:pihsm-private /var/lib/pihsm/private
 esac

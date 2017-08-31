@@ -16,16 +16,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+from os import path
+
 import pihsm
 from pihsm.common import SignatureStore
 from pihsm.sign import Signer
-from pihsm.ipc import open_activated_socket, PrivateServer, DisplayClient
+from pihsm.ipc import open_activated_socket, PrivateServer
+from pihsm.tests.helpers import random_id
 
 log = pihsm.configure_logging(__name__)
 
 
+
+class SpecialClient:
+    __slots__ = ('basedir', 'filename')
+
+    def __init__(self, basedir, name='tail'):
+        self.basedir = basedir
+        self.filename = path.join(basedir, name)
+
+    def make_request(self, request):
+        log.info('make_request %d', len(request))
+        tmp = path.join(self.basedir, random_id())
+        with open(tmp, 'xb', 0) as fp:
+            os.chmod(fp.fileno(), 0o444)
+            fp.write(request)
+            os.fsync(fp.fileno())
+        os.rename(tmp, self.filename)
+
+
+
 # Create private key, send genesis signature to display server:
-display_client = DisplayClient('/run/pihsm/display.socket')
+#display_client = DisplayClient('/run/pihsm/display.socket')
+display_client = SpecialClient('/run/pihsm-private')
 store = SignatureStore('/var/lib/pihsm/private')
 signer = Signer(store)
 display_client.make_request(signer.genesis)

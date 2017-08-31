@@ -39,11 +39,14 @@
 
 import time
 import threading
+import logging
 
-from .common import b32enc, log_genesis, log_response
+from .common import b32enc, log_genesis, log_response, RESPONSE
 from .verify import get_signature, get_pubkey, get_counter
 from .sign import get_entropy_avail
 
+
+log = logging.getLogger(__name__)
 
 LCD_LINES = (0x80, 0xC0, 0x94, 0xD4)
 ENABLE = 0b00000100
@@ -241,4 +244,44 @@ class Manager:
     def _worker(self):
         while True:
             self.lcd.lcd_screens(*self.screens)
+
+
+class DisplayLoop:
+    def __init__(self, lcd, filename='/run/pihsm-private/tail'):
+        self.lcd = lcd
+        self.filename = filename
+        self.last = None
+
+    def run_forever(self):
+        self.run_first()
+        while True:
+            self.run_once()
+
+    def run_n_times(self, n):
+        assert type(n) is int and n > 0
+        self.run_first()
+        for i in range(n):
+            self.run_once()
+
+    def run_first(self):
+        _mk_screens_0()
+        time.sleep(5)
+        #self.lcd.lcd_init()
+        #self.lcd.lcd_screens(*screens)
+
+    def run_once(self):
+        try:
+            self._run_once()
+        except:
+            log.exception('Error in DisplayLoop.run_once():')
+            time.sleep(5)
+
+    def _run_once(self):
+        with open(self.filename, 'rb', 0) as fp:
+            tail = fp.read(RESPONSE)
+            if tail != self.last:
+                tail_to_screens(tail)
+            self.last = tail
+            #self.lcd.lcd_screens()
+            
 

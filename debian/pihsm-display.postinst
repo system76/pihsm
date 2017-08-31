@@ -7,9 +7,6 @@ case $1 in
                 --home /var/lib/pihsm/display --no-create-home \
                 --shell /bin/bash --group --gecos "pihsm-display" pihsm-display
         fi
-        if ! getent group pihsm-display-socket > /dev/null; then
-            addgroup --system --quiet pihsm-display-socket
-        fi
         adduser pihsm-display i2c --quiet
 esac
 
