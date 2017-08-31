@@ -16,24 +16,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import serial
-
 import pihsm
 from pihsm.common import SignatureStore
 from pihsm.sign import Signer
-from pihsm.serial import open_serial, SerialClient
+from pihsm.serial import SerialClient
 from pihsm.ipc import open_activated_socket, ClientServer
 
 
 log = pihsm.configure_logging(__name__)
 
-
-ttl = open_serial('/dev/ttyUSB0', serial.Serial)
-serial_client = SerialClient(ttl)
+serial_client = SerialClient('/dev/ttyUSB0')
 store = SignatureStore('/var/lib/pihsm/client')
 signer = Signer(store)
-
 sock = open_activated_socket()
 server = ClientServer(sock, serial_client, signer)
-
 server.serve_forever()
+

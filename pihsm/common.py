@@ -117,7 +117,9 @@ def b32dec(string):
     return b32decode(string + ('=' * pad))
 
 
-GENESIS_TEMPLATE = '\n '.join([
+LOG_SEP = '\n  '
+
+GENESIS_TEMPLATE = LOG_SEP.join([
     '%s:',
     'Genesis.signature: %s',
     'Genesis.public: %s',
@@ -134,51 +136,75 @@ def log_genesis(genesis, label='Genesis'):
     )
 
 
-REQUEST_TEMPLATE = '\n '.join([
-    '%s:',
+REQUEST_TEMPLATE = LOG_SEP.join([
+    '--> %s:',
     'Request.signature: %s',
     'Request.public: %s',
     'Request.previous: %s',
     'Request.counter: %s',
     'Request.timestamp: %s',
-    'Request.digest: %s',
 ])
 
 
-def log_request(request, label='Request'):
+def log_request(request):
     r = unpack_signed(request)
     log.info(REQUEST_TEMPLATE,
-        label,
+        b32enc(r.message),
         b32enc(r.signature),
         b32enc(r.pubkey),
         b32enc(r.previous),
         r.counter,
         r.timestamp,
-        b32enc(r.message),
     )
 
 
-RESPONSE_TEMPLATE = '\n '.join([
-    '%s:',
-    'Response.signature: %s',
-    'Response.public: %s',
-    'Response.previous: %s',
-    'Response.counter: %s',
-    'Response.timestamp: %s',
-    'Response.request.signature: %s',
-    'Response.request.public: %s',
-    'Response.request.previous: %s',
-    'Response.request.counter: %s',
-    'Response.request.timestamp: %s',
-    'Response.request.digest: %s',
+REQUEST_ATTEMPT_TEMPLATE = LOG_SEP.join([
+    '--> %s %d/%d:',
+    'Request.signature: %s',
+    'Request.public: %s',
+    'Request.previous: %s',
+    'Request.counter: %s',
+    'Request.timestamp: %s',
 ])
 
 
-def log_response(request, label='Response'):
+def log_request_attempt(request, i, stop):
+    assert 0 <= i < stop
+    r = unpack_signed(request)
+    method = (log.info if i == 0 else log.warning)
+    method(REQUEST_ATTEMPT_TEMPLATE,
+        b32enc(r.message),
+        i + 1,
+        stop,
+        b32enc(r.signature),
+        b32enc(r.pubkey),
+        b32enc(r.previous),
+        r.counter,
+        r.timestamp,
+    )
+
+
+RESPONSE_TEMPLATE = LOG_SEP.join([
+    '<-- %s:',
+    'Signed.signature: %s',
+    'Signed.public: %s',
+    'Signed.previous: %s',
+    'Signed.counter: %s',
+    'Signed.timestamp: %s',
+    'Signed.Request.signature: %s',
+    'Signed.Request.public: %s',
+    'Signed.Request.previous: %s',
+    'Signed.Request.counter: %s',
+    'Signed.Request.timestamp: %s',
+])
+
+
+def log_response(request):
     a = unpack_signed(request)
     b = unpack_signed(a.message)
     log.info(RESPONSE_TEMPLATE,
-        label,
+        b32enc(b.message),
+
         b32enc(a.signature),
         b32enc(a.pubkey),
         b32enc(a.previous),
@@ -190,7 +216,6 @@ def log_response(request, label='Response'):
         b32enc(b.previous),
         b.counter,
         b.timestamp,
-        b32enc(b.message),
     )
 
 

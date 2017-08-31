@@ -173,7 +173,7 @@ class TestPrivateServer(TestCase):
         self.assertIs(signer.tail, response1)
         self.assertEqual(signer.counter, 1)
         self.assertEqual(sock._calls, [])
-        self.assertEqual(display_client._calls, [response1])  # Should not update display
+        self.assertEqual(display_client._calls, [response1, response1])
 
         # Another good request:
         req2 = s.sign(os.urandom(48))
@@ -187,7 +187,7 @@ class TestPrivateServer(TestCase):
             )
         self.assertEqual(sock._calls, [])
         self.assertIs(signer.tail, response1)
-        self.assertEqual(display_client._calls, [response1])
+        self.assertEqual(display_client._calls, [response1, response1])
 
         # Good request:
         response2 = server.handle_request(req2)
@@ -197,14 +197,18 @@ class TestPrivateServer(TestCase):
         self.assertIs(signer.tail, response2)
         self.assertEqual(signer.counter, 2)
         self.assertEqual(sock._calls, [])
-        self.assertEqual(display_client._calls, [response1, response2])
+        self.assertEqual(display_client._calls,
+            [response1, response1, response2]
+        )
 
         # Should return same response if exact immediate request is reused:
         self.assertIs(server.handle_request(req2), response2)
         self.assertIs(signer.tail, response2)
         self.assertEqual(signer.counter, 2)
         self.assertEqual(sock._calls, [])
-        self.assertEqual(display_client._calls, [response1, response2])
+        self.assertEqual(display_client._calls,
+            [response1, response1, response2, response2]
+        )
 
 
 class TestDisplayServer(TestCase):

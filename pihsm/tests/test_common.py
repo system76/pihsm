@@ -283,6 +283,12 @@ class TestFunctions(TestCase):
         request = os.urandom(common.REQUEST)
         self.assertIsNone(common.log_request(request))
 
+    def test_log_request_attempt(self):
+        request = os.urandom(common.REQUEST)
+        self.assertIsNone(common.log_request_attempt(request, 0, 3))
+        self.assertIsNone(common.log_request_attempt(request, 1, 3))
+        self.assertIsNone(common.log_request_attempt(request, 2, 3))
+
     def test_log_response(self):
         response = os.urandom(common.RESPONSE)
         self.assertIsNone(common.log_response(response))

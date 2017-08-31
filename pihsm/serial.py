@@ -23,6 +23,7 @@ from .common import (
     REQUEST,
     RESPONSE,
     b32enc,
+    log_request_attempt,
     log_request,
     log_response,
     get_message,
@@ -33,10 +34,12 @@ from .verify import isvalid, get_pubkey
 log = logging.getLogger(__name__)
 
 
-def open_serial(port, SerialClass):
+def open_serial(port, SerialClass=None):
+    if SerialClass is None:
+        from serial import Serial as SerialClass
     log.info('Opening serial device %r', port)
     return SerialClass(port,
-        baudrate=115200,
+        baudrate=57600,
         timeout=SERIAL_TIMEOUT,
     )
 
@@ -81,28 +84,27 @@ class SerialServer:
 
 
 class SerialClient:
-    __slots__ = ('ttl')
+    __slots__ = ('port',)
 
-    def __init__(self, ttl):
-        self.ttl = ttl
+    def __init__(self, port):
+        self.port = port
+
+    def open_serial(self):
+        return open_serial(self.port)
 
     def make_request(self, request):
-        b32 = b32enc(request[-48:])
+        ttl = self.open_serial()
         for i in range(SERIAL_RETRIES):
-            log_request(request,
-                '--> {} {}/{}'.format(b32, i + 1, SERIAL_RETRIES)
-            )
-
-            # First drain the read buffer:
-            self.ttl.read(RESPONSE)
-
-            # Write the request, attempt to read response:
-            self.ttl.write(request)
-            response = read_serial(self.ttl, RESPONSE)
-
+            log_request_attempt(request, i, SERIAL_RETRIES)
+            ttl.write(request)
+            response = read_serial(ttl, RESPONSE)
             if response is not None:
-                log_response(response, '<-- {}'.format(b32))
+                log_response(response)
                 assert get_message(response) == request
                 return response
+            else:
+                cruft = ttl.read(RESPONSE)
+                if len(cruft) > 0:
+                    log.warning('%d extra bytes read from serial', len(cruft))
         raise Exception('failed to make serial request')
 

@@ -49,7 +49,7 @@ class TestFunctions(TestCase):
             s = serial.open_serial(port, MockSerialOpen)
             self.assertIs(type(s), MockSerialOpen)
             self.assertEqual(s._args, (port,))
-            self.assertEqual(s._kw, {'baudrate': 115200, 'timeout': 1})
+            self.assertEqual(s._kw, {'baudrate': 57600, 'timeout': 1})
 
     def test_read_serial(self):
         for size in [224, 400]:

@@ -95,8 +95,8 @@ class PrivateServer(Server):
             log.warning('Reusing response %s', b32enc(get_signature(response)))
         else:
             response = self.signer.sign(request)
-            self.display_client.make_request(response)
         log_response(response)
+        self.display_client.make_request(response)
         return response
 
 
