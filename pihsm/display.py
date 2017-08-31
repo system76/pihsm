@@ -111,10 +111,10 @@ class LCD:
             self.lcd_line(text.encode(), i)
 
     def lcd_screens(self, *screens):
-        log.info('==== %d screens ====', len(screens))
         for (i, lines) in enumerate(screens):
             self.lcd_text_lines(*lines, msg='screens[{}][%d]: %r'.format(i))
             time.sleep(5)
+        log.info('-' * 37)
 
 
 def _mk_u64_line(u64):
