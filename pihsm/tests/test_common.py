@@ -58,10 +58,10 @@ class TestConstants(TestCase):
         self.check_int('SERIAL_TIMEOUT', 2)
 
     def test_SERIAL_RETRIES(self):
-        self.check_int('SERIAL_RETRIES', 2)
+        self.check_int('SERIAL_RETRIES', 3)
 
     def test_IPC_TIMEOUT(self):
-        self.check_int('IPC_TIMEOUT', 8)
+        self.check_int('IPC_TIMEOUT', 12)
         self.assertEqual(common.IPC_TIMEOUT,
             2 * common.SERIAL_RETRIES * common.SERIAL_TIMEOUT
         )

@@ -203,7 +203,7 @@ class TestSerialClient(TestCase):
                 ('read', common.RESPONSE)
             ])
 
-            ttl = MockSerial(bad, b'some junk', bad, b'stuff', signed)
+            ttl = MockSerial(bad, b'some junk', bad, b'stuff', bad, b'a', signed)
             f = MockSerialFactory(port, ttl)
             client = serial.SerialClient(port, f)
             with self.assertRaises(Exception) as cm:
@@ -213,6 +213,10 @@ class TestSerialClient(TestCase):
             )
             self.assertEqual(f._calls, 1)
             self.assertEqual(ttl._calls, [
+                ('write', request),
+                'flush',
+                ('read', common.RESPONSE),
+                ('read', common.RESPONSE * 2),
                 ('write', request),
                 'flush',
                 ('read', common.RESPONSE),
