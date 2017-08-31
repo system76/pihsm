@@ -100,20 +100,6 @@ class PrivateServer(Server):
         return response
 
 
-class DisplayServer(Server):
-    __slots__ = ('manager',)
-
-    def __init__(self, sock, manager):
-        super().__init__(sock, 96, 400)
-        self.manager = manager
-
-    def handle_request(self, request):
-        assert len(request) in (96, 400)
-        verify_message(request)
-        self.manager.update_screens(request)
-        return compute_digest(request)
-
-
 class ClientServer(Server):
     __slots__ = ('serial_client', 'signer')
     fail = False
@@ -160,19 +146,6 @@ class Client:
             return response
         finally:
             sock.close()
-
-
-class DisplayClient(Client):
-    __slots__ = tuple()
-
-    def __init__(self, filename='/run/pihsm/display.socket'):
-        super().__init__(filename, 48)
-
-    def make_request(self, request):
-        digest = compute_digest(request)
-        response = self._make_request(request)
-        assert response == digest
-        return response
 
 
 class PrivateClient(Client):

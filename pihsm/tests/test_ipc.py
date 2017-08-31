@@ -211,45 +211,6 @@ class TestPrivateServer(TestCase):
         )
 
 
-class TestDisplayServer(TestCase):
-    def test_init(self):
-        sock = MockSocket()
-        manager = MockManager()
-        server = ipc.DisplayServer(sock, manager)
-        self.assertIs(server.sock, sock)
-        self.assertIs(server.manager, manager)
-        self.assertIs(server.fail, True)
-        self.assertEqual(sock._calls, [])
-        self.assertEqual(manager._calls, [])
-
-    def test_handle_request(self):
-        sock = MockSocket()
-        manager = MockManager()
-        server = ipc.DisplayServer(sock, manager)
-
-        s = Signer()
-        r0 = s.genesis
-        r1 = s.sign(os.urandom(224))
-        r2 = s.sign(os.urandom(224))
-
-        accum = []
-        for r in [r0, r1, r2]:
-            for bad in iter_permutations(r):
-                with self.assertRaises(BadSignatureError) as cm:
-                    server.handle_request(bad)
-                self.assertEqual(str(cm.exception),
-                    'Signature was forged or corrupt'
-                )
-                self.assertEqual(sock._calls, [])
-                self.assertEqual(manager._calls, accum)
-            self.assertEqual(server.handle_request(r),
-                compute_digest(r)
-            )
-            self.assertEqual(sock._calls, [])
-            self.assertEqual(manager._calls, accum + [r])
-            accum.append(r)
-
-
 class TestClientServer(TestCase):
     def test_init(self):
         sock = MockSocket()
@@ -329,30 +290,11 @@ class TempServer:
             self.process.join()
 
 
-class MockDisplayManager:
-    def update_screens(self, request):
-        pass
-
-
-def _build_display_server(sock):
-    return ipc.DisplayServer(sock, MockDisplayManager())
-
-
 def _build_private_server(sock):
     return ipc.PrivateServer(sock, MockDisplayClient(), Signer())
 
 
 class TestLiveIPC(TestCase):
-    def test_display_ipc(self):
-        server = TempServer(_build_display_server)
-        client = ipc.DisplayClient(server.filename)
-        s = Signer()
-        signed1 = s.sign(os.urandom(224))
-        signed2 = s.sign(os.urandom(224))
-        for request in [s.genesis, signed1, signed2]:
-            digest = compute_digest(request)
-            self.assertEqual(client.make_request(request), digest)
-
     def test_private_ipc(self):
         server = TempServer(_build_private_server)        
         client = ipc.PrivateClient(server.filename)

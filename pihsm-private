@@ -46,9 +46,6 @@ class SpecialClient:
         os.rename(tmp, self.filename)
 
 
-
-# Create private key, send genesis signature to display server:
-#display_client = DisplayClient('/run/pihsm/display.socket')
 display_client = SpecialClient('/run/pihsm-private')
 store = SignatureStore('/var/lib/pihsm/private')
 signer = Signer(store)
