@@ -278,7 +278,6 @@ class DisplayLoop:
             log.warning('Not found: %r', self.filename)
 
     def run_once(self):
-        log.info('run_once()')
         time.sleep(1)
         self.update_tail_if_needed()
         self.play_screens()

@@ -18,11 +18,13 @@ from collections import namedtuple
 import logging
 from hashlib import sha384
 from base64 import b32encode, b32decode
+import json
 import os
 from os import path
 
 
 Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp message')
+Config = namedtuple('Config', 'key types default')
 log = logging.getLogger(__name__)
 
 
@@ -45,6 +47,8 @@ RESPONSE = PREFIX + REQUEST
 
 SIZES = (GENESIS, REQUEST, RESPONSE)
 MAX_SIZE = max(SIZES)
+
+MAX_CONFIG_FILE_SIZE = 4096
 
 
 def get_signature(signed):
@@ -217,6 +221,52 @@ def log_response(request):
         b32enc(b.previous),
         b.counter,
         b.timestamp,
+    )
+
+
+def load_json(filename):
+    try:
+        with open(filename, 'rb', 0) as fp:
+            data = fp.read(MAX_CONFIG_FILE_SIZE)
+            obj = json.loads(data.decode())
+            assert type(obj) is dict
+            return obj
+    except FileNotFoundError:
+        log.warning('Not found: %r', filename)
+        return {}
+
+
+def merge_config(obj, *schema):
+    for c in schema:
+        assert type(c) is Config
+        value = obj.setdefault(c.key, c.default)
+        assert isinstance(value, c.types)
+
+
+def load_config(filename, *schema):
+    obj = load_json(filename)
+    merge_config(obj, *schema)
+    log.info('Config: %s', json.dumps(obj, sort_keys=True, indent=4))
+    return obj
+
+
+def load_client_config(filename='/etc/pihsm/client.json'):
+    return load_config(filename,
+        Config('serial_port', str, '/dev/ttyUSB0'),
+    )
+
+
+def load_server_config(filename='/etc/pihsm/server.json'):
+    return load_config(filename,
+        Config('serial_port', str, '/dev/ttyAMA0'),
+    )
+
+
+def load_display_config(filename='/etc/pihsm/display.json'):
+    return load_config(filename,
+        Config('i2c_bus', int, 1),
+        Config('lcd_i2c_address', int, 0x27),
+        Config('use_hardware', bool, False),
     )
 
 

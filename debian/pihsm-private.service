@@ -7,7 +7,7 @@ Requires=pihsm-private.socket
 RuntimeDirectory=pihsm-private
 User=pihsm-private
 ExecStart=/usr/bin/pihsm-private
-Restart=always
+Restart=no
 
 [Install]
 WantedBy=multi-user.target

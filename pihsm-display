@@ -16,24 +16,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#import smbus
-
 import pihsm
+from pihsm.common import load_display_config
 from pihsm.display import LCD, DisplayLoop
 
 
 log = pihsm.configure_logging(__name__)
 
 
-class MockBus:
-    def write_byte(self, addr, bits):
-        pass
+config = load_display_config()
+if config['use_hardware'] is True:
+    import smbus
+    bus = smbus.SMBus(config['i2c_bus'])
+else:
+    class MockBus:
+        def write_byte(self, addr, bits):
+            pass
+    bus = MockBus()
+    log.warning('Not enabling I2C display interaction')
 
-
-# Setup I2C LCD display stuffs:
-#bus = smbus.SMBus(1)
-bus = MockBus()
-lcd = LCD(bus)
+lcd = LCD(bus, config['lcd_i2c_address'])
 display_loop = DisplayLoop(lcd)
 display_loop.run_forever()
 

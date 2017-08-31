@@ -16,17 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import serial
-
 import pihsm
+from pihsm.common import load_server_config
 from pihsm.ipc import PrivateClient
-from pihsm.serial import open_serial, SerialServer
+from pihsm.serial import SerialServer
 
 
 log = pihsm.configure_logging(__name__)
 
 
-ttl = open_serial('/dev/ttyAMA0', serial.Serial)
-server = SerialServer(ttl, PrivateClient())
+config = load_server_config()
+server = SerialServer(PrivateClient(), config['serial_port'])
 server.serve_forever()
 

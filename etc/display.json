@@ -1,0 +1,5 @@
+{
+    "i2c_bus": 1,
+    "lcd_i2c_address": 39,
+    "use_hardware": false
+}

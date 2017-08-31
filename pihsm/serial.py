@@ -70,20 +70,22 @@ class BaseSerial:
         return open_serial(self.port, self.SerialClass)
 
 
-class SerialServer:
-    __slots__ = ('ttl', 'private_client')
+class SerialServer(BaseSerial):
+    __slots__ = ('private_client',)
 
-    def __init__(self, ttl, private_client):
-        self.ttl = ttl
+    def __init__(self, private_client, port, SerialClass=None):
+        super().__init__(port, SerialClass)
         self.private_client = private_client
 
     def serve_forever(self):
         try:
+            ttl = self.open_serial()
             while True:
-                request = read_serial(self.ttl, REQUEST)
+                request = read_serial(ttl, REQUEST)
                 if request is not None:
                     response = self.handle_request(request)
-                    self.ttl.write(response)
+                    ttl.write(response)
+                    ttl.flush()
         except:
             log.exception('Error in SerialServer:')
             raise

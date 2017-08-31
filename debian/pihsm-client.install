@@ -1,2 +1,3 @@
 /usr/bin/pihsm-client
 /usr/bin/pihsm-request
+etc/client.json etc/pihsm/

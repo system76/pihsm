@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import pihsm
+from pihsm.common import load_client_config
 from pihsm.common import SignatureStore
 from pihsm.sign import Signer
 from pihsm.serial import SerialClient
@@ -25,7 +26,9 @@ from pihsm.ipc import open_activated_socket, ClientServer
 
 log = pihsm.configure_logging(__name__)
 
-serial_client = SerialClient('/dev/ttyUSB0')
+
+config = load_client_config()
+serial_client = SerialClient(config['serial_port'])
 store = SignatureStore('/var/lib/pihsm/client')
 signer = Signer(store)
 sock = open_activated_socket()
