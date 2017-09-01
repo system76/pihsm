@@ -37,7 +37,6 @@ class SpecialClient:
         self.filename = path.join(basedir, name)
 
     def make_request(self, request):
-        log.info('make_request %d', len(request))
         tmp = path.join(self.basedir, random_id())
         with open(tmp, 'xb', 0) as fp:
             os.chmod(fp.fileno(), 0o444)

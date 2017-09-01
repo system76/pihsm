@@ -38,7 +38,6 @@ log = logging.getLogger(__name__)
 def open_serial(port, SerialClass=None):
     if SerialClass is None:
         from serial import Serial as SerialClass
-    log.info('Opening serial device %r', port)
     return SerialClass(port,
         baudrate=SERIAL_BAUDRATE,
         timeout=SERIAL_TIMEOUT,

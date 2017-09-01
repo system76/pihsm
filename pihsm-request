@@ -44,10 +44,16 @@ client = ClientClient()
 response = client.make_request(digest)
 log_response(response)
 
-for j in range(500):
-    for i in range(100):
-        response = client.make_request(os.urandom(48))
-        log_response(response)
+problems = 0
+for j in range(1000):
+    for i in range(50):
+        try:
+            response = client.make_request(os.urandom(48))
+            log_response(response)
+        except:
+            problems += 1
+            log.exception('Error %d', problems)
+            time.sleep(10)
     print('sleeping', (j + 1) * (i + 1))
     time.sleep(3)
 
