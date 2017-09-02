@@ -18,16 +18,19 @@
 __version__ = '0.0.1'
 
 
-def configure_logging(name):
+def configure_logging(name, debug=False):
     import logging
-
+    level = (logging.DEBUG if debug is True else logging.INFO)
     _format = ' '.join([
         '%(levelname)s',
         '%(message)s',
     ])
     logging.basicConfig(
-        level=logging.INFO,
+        level=level,
         format=_format,
     )
-    return logging.getLogger(name)
+    log = logging.getLogger(name)
+    if debug is True:
+        log.debug('In debug mode (extra logging and instrumentation)')
+    return log
 

@@ -21,12 +21,13 @@ from base64 import b32encode, b32decode
 import json
 import os
 from os import path
+from random import SystemRandom
 
 
 Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp message')
 Config = namedtuple('Config', 'key types default')
 log = logging.getLogger(__name__)
-
+random = SystemRandom()
 
 SERIAL_BAUDRATE = 57600
 SERIAL_TIMEOUT = 2
@@ -49,6 +50,7 @@ SIZES = (GENESIS, REQUEST, RESPONSE)
 MAX_SIZE = max(SIZES)
 
 MAX_CONFIG_FILE_SIZE = 4096
+CONFIG_DEBUG = Config('debug', bool, False)
 
 
 def get_signature(signed):
@@ -253,12 +255,14 @@ def load_config(filename, *schema):
 def load_client_config(filename='/etc/pihsm/client.json'):
     return load_config(filename,
         Config('serial_port', str, '/dev/ttyUSB0'),
+        CONFIG_DEBUG,
     )
 
 
 def load_server_config(filename='/etc/pihsm/server.json'):
     return load_config(filename,
         Config('serial_port', str, '/dev/ttyAMA0'),
+        CONFIG_DEBUG,
     )
 
 
@@ -267,6 +271,7 @@ def load_display_config(filename='/etc/pihsm/display.json'):
         Config('i2c_bus', int, 1),
         Config('lcd_i2c_address', int, 0x27),
         Config('use_hardware', bool, False),
+        CONFIG_DEBUG,
     )
 
 
@@ -313,4 +318,25 @@ class SignatureStore:
             fp.write(signed)
             fp.flush()
             os.fsync(fp.fileno())
+
+
+class RandomExit:
+    __slots__ = ('out_of', 'count', 'debug')
+
+    def __init__(self, out_of=1000, debug=True):
+        assert type(out_of) is int and out_of > 0
+        self.out_of = out_of
+        self.debug = debug
+        self.count = 0
+
+    def tempt_fate(self):
+        if self.debug is True:
+            self.count += 1
+            if random.randrange(0, self.out_of) == 0:
+                status = random.randrange(0, 2)
+                log.error(
+                    '%d attemps, 1/%d failure probability: exiting with status %d',
+                    self.count, self.out_of, status
+                )
+                raise SystemExit(status)
 

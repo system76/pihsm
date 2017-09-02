@@ -22,10 +22,10 @@ from pihsm.ipc import PrivateClient
 from pihsm.serial import SerialServer
 
 
-log = pihsm.configure_logging(__name__)
-
-
 config = load_server_config()
+log = pihsm.configure_logging(__name__, debug=config['debug'])
+
+
 server = SerialServer(PrivateClient(), config['serial_port'])
 server.serve_forever()
 

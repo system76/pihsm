@@ -1,1 +1,4 @@
-{"serial_port": "/dev/ttyAMA0"}
+{
+    "debug": false,
+    "serial_port": "/dev/ttyAMA0"
+}

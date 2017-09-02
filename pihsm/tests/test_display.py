@@ -18,7 +18,7 @@ from unittest import TestCase
 import os
 
 from .helpers import random_u64, MockBus
-from ..common import b32enc
+from ..common import b32enc, RandomExit
 from  .. import display
 
 
@@ -234,6 +234,20 @@ class TestLCD(TestCase):
         self.assertEqual(lcd.backlight, 0x08)
         self.assertEqual(lcd.cols, 20)
         self.assertEqual(lcd.rows, 4)
+        self.assertIs(type(lcd.exit), RandomExit)
+        self.assertEqual(lcd.exit.out_of, 1000)
+        self.assertIs(lcd.exit.debug, False)
+        self.assertEqual(bus._calls, [])
+
+        lcd = display.LCD(bus, debug=True)
+        self.assertIs(lcd.bus, bus)
+        self.assertEqual(lcd.addr, 0x27)
+        self.assertEqual(lcd.backlight, 0x08)
+        self.assertEqual(lcd.cols, 20)
+        self.assertEqual(lcd.rows, 4)
+        self.assertIs(type(lcd.exit), RandomExit)
+        self.assertEqual(lcd.exit.out_of, 1000)
+        self.assertIs(lcd.exit.debug, True)
         self.assertEqual(bus._calls, [])
 
     def test_write_byte(self):

@@ -21,10 +21,10 @@ from pihsm.common import load_display_config
 from pihsm.display import LCD, DisplayLoop
 
 
-log = pihsm.configure_logging(__name__)
-
-
 config = load_display_config()
+log = pihsm.configure_logging(__name__, debug=config['debug'])
+
+
 if config['use_hardware'] is True:
     import smbus
     bus = smbus.SMBus(config['i2c_bus'])
@@ -35,7 +35,7 @@ else:
     bus = MockBus()
     log.warning('Not enabling I2C display interaction')
 
-lcd = LCD(bus, config['lcd_i2c_address'])
+lcd = LCD(bus, config['lcd_i2c_address'], debug=config['debug'])
 display_loop = DisplayLoop(lcd)
 display_loop.run_forever()
 
