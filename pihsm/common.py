@@ -26,6 +26,7 @@ from random import SystemRandom
 
 Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp message')
 Config = namedtuple('Config', 'key types default')
+
 log = logging.getLogger(__name__)
 random = SystemRandom()
 
@@ -38,10 +39,8 @@ SIGNATURE = 64
 PUBKEY = 32
 COUNTER = 8
 TIMESTAMP = 8
-
 GENESIS = SIGNATURE + PUBKEY
 PREFIX = GENESIS + SIGNATURE + COUNTER + TIMESTAMP
-
 DIGEST = 48
 REQUEST = PREFIX + DIGEST
 RESPONSE = PREFIX + REQUEST
@@ -230,19 +229,28 @@ def load_json(filename):
     try:
         with open(filename, 'rb', 0) as fp:
             data = fp.read(MAX_CONFIG_FILE_SIZE)
-            obj = json.loads(data.decode())
-            assert type(obj) is dict
-            return obj
+            config = json.loads(data.decode())
+            if not type(config) is dict:
+                raise TypeError(
+                    'config: need a {!r}; got a {!r}'.format(dict, type(config))
+                )
+            return config
     except FileNotFoundError:
         log.warning('Not found: %r', filename)
         return {}
 
 
-def merge_config(obj, *schema):
+def merge_config(config, *schema):
+    assert type(config) is dict
     for c in schema:
         assert type(c) is Config
-        value = obj.setdefault(c.key, c.default)
-        assert isinstance(value, c.types)
+        value = config.setdefault(c.key, c.default)
+        if not isinstance(value, c.types):
+            raise TypeError(
+                'config[{!r}]: need a {!r}; got a {!r}'.format(
+                    c.key, c.types, type(value)
+                )
+            )
 
 
 def load_config(filename, *schema):

@@ -19,8 +19,9 @@ import os
 from os import path
 import hashlib
 from base64 import b32encode
+import json
 
-from .helpers import random_u64, TempDir
+from .helpers import random_u64, random_id, TempDir
 from ..common import b32enc
 from .. import common
 
@@ -44,6 +45,16 @@ class TestNamedTuples(TestCase):
         self.assertIs(args[5], t.message)
         self.assertEqual(t, args)
 
+    def test_Config(self):
+        args = tuple(os.urandom(16) for i in range(3))
+        t = common.Config(*args)
+        self.assertIs(type(t), common.Config)
+        self.assertIsInstance(t, tuple)
+        self.assertIs(args[0], t.key)
+        self.assertIs(args[1], t.types)
+        self.assertIs(args[2], t.default)
+        self.assertEqual(t, args)
+
 
 class TestConstants(TestCase):
     def check_int(self, name, expected):
@@ -53,6 +64,9 @@ class TestConstants(TestCase):
         value = getattr(common, name)
         self.assertIs(type(value), int)
         self.assertEqual(value, expected)
+
+    def test_SERIAL_BAUDRATE(self):
+        self.check_int('SERIAL_BAUDRATE', 57600)
 
     def test_SERIAL_TIMEOUT(self):
         self.check_int('SERIAL_TIMEOUT', 2)
@@ -118,6 +132,28 @@ class TestConstants(TestCase):
     def test_MAX_SIZE(self):
         self.assertIs(type(common.MAX_SIZE), int)
         self.assertEqual(common.MAX_SIZE, max(common.SIZES))
+
+    def test_MAX_CONFIG_FILE_SIZE(self):
+        self.check_int('MAX_CONFIG_FILE_SIZE', 4096)
+
+
+class TestConfigItems(TestCase):
+    def check_config_item(self, name, expected):
+        self.assertEqual(name, name.upper())
+
+        self.assertIs(type(expected), common.Config)
+        self.assertIs(type(expected.key), str)
+        self.assertEqual(expected.key, expected.key.lower())
+        self.assertIn(type(expected.types), (type, tuple))
+
+        value = getattr(common, name)
+        self.assertIs(type(value), common.Config)
+        self.assertEqual(value, expected)
+
+    def test_CONFIG_DEBUG(self):
+        self.check_config_item('CONFIG_DEBUG',
+            common.Config('debug', bool, False)
+        )
 
 
 class TestFunctions(TestCase):
@@ -292,6 +328,53 @@ class TestFunctions(TestCase):
     def test_log_response(self):
         response = os.urandom(common.RESPONSE)
         self.assertIsNone(common.log_response(response))
+
+    def test_load_json(self):
+        tmp = TempDir()
+        name = random_id()
+        filename = tmp.join(name)
+        self.assertEqual(common.load_json(filename), {})
+        obj = dict(
+            (random_id(), random_u64()) for i in range(20)
+        )
+        obj_b = json.dumps(obj).encode()
+        tmp.write(obj_b, name)
+        self.assertEqual(common.load_json(filename), obj)
+
+        # Bad top-level object type:
+        obj = random_u64()
+        obj_b = json.dumps(obj).encode()
+        filename = tmp.write(obj_b, random_id())
+        with self.assertRaises(TypeError) as cm:
+            common.load_json(filename)
+        self.assertEqual(str(cm.exception),
+            'config: need a {!r}; got a {!r}'.format(dict, int)
+        )
+
+    def test_merge_config(self):
+        config = {}
+        self.assertIsNone(common.merge_config(config))
+        self.assertEqual(config, {})
+
+        c0 = common.Config(random_id(), int, random_u64())
+        self.assertIsNone(common.merge_config(config, c0))
+        self.assertEqual(config, {c0.key: c0.default})
+
+        v0 = random_u64()
+        config = {c0.key: v0}
+        self.assertIsNone(common.merge_config(config, c0))
+        self.assertNotEqual(config, {c0.key: c0.default})
+        self.assertEqual(config, {c0.key: v0})
+
+        v0 = random_id()
+        config = {c0.key: v0}
+        with self.assertRaises(TypeError) as cm:
+            common.merge_config(config, c0)
+        self.assertEqual(str(cm.exception),
+            'config[{!r}]: need a {!r}; got a {!r}'.format(c0.key, int, str)
+        )
+        self.assertNotEqual(config, {c0.key: c0.default})
+        self.assertEqual(config, {c0.key: v0})
 
     def test_compute_digest(self):
         good = b'System76'
