@@ -136,6 +136,21 @@ class TestConstants(TestCase):
     def test_MAX_CONFIG_FILE_SIZE(self):
         self.check_int('MAX_CONFIG_FILE_SIZE', 4096)
 
+    def test_B32ALPHABET(self):
+        self.assertIs(type(common.B32ALPHABET), str)
+        self.assertEqual(len(common.B32ALPHABET), 32)
+        self.assertEqual(len(set(common.B32ALPHABET)), 32)
+
+    def test_B32NAMES(self):
+        self.assertIs(type(common.B32NAMES), tuple)
+        self.assertEqual(len(common.B32NAMES), 1024)
+        self.assertEqual(len(set(common.B32NAMES)), 1024)
+        self.assertNotEqual(tuple(sorted(common.B32NAMES)), common.B32NAMES)
+        for name in common.B32NAMES:
+            self.assertIs(type(name), str)
+            self.assertEqual(len(name), 2)
+            self.assertTrue(set(name).issubset(common.B32ALPHABET))
+
 
 class TestConfigItems(TestCase):
     def check_config_item(self, name, expected):
@@ -406,6 +421,32 @@ class TestFunctions(TestCase):
             self.assertEqual(common.compute_digest(good),
                 hashlib.sha384(good).digest()
             )
+
+    def test_create_b32_subdirs(self):
+        tmp = TempDir()
+        name = random_id()
+        self.assertEqual(
+            common.create_b32_subdirs(tmp.dir, name),
+            tmp.join(name)
+        )
+        self.assertEqual(tmp.listdir(), [name])
+        self.assertEqual(tmp.listdir(name), sorted(common.B32NAMES))
+
+        # Directory already exists:
+        with self.assertRaises(OSError) as cm:
+            common.create_b32_subdirs(tmp.dir, name)
+        dirs = tmp.listdir()
+        self.assertEqual(len(dirs), 2)
+        self.assertEqual(dirs[0], name)
+        other = dirs[1]
+        self.assertTrue(other.startswith(name + '.'))
+        self.assertEqual(str(cm.exception),
+            '[Errno 39] Directory not empty: {!r} -> {!r}'.format(
+                tmp.join(other), tmp.join(name)
+            )
+        )
+        self.assertEqual(tmp.listdir(other), sorted(common.B32NAMES))
+        self.assertEqual(tmp.listdir(name), sorted(common.B32NAMES))
 
 
 class TestSignatureStore(TestCase):

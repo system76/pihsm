@@ -52,6 +52,10 @@ MAX_CONFIG_FILE_SIZE = 4096
 CONFIG_DEBUG = Config('debug', bool, False)
 
 
+B32ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+B32NAMES = tuple(a + b for a in B32ALPHABET for b in B32ALPHABET)
+
+
 def get_signature(signed):
     assert type(signed) is bytes and len(signed) >= GENESIS
     sig = signed[0:64]
@@ -121,6 +125,10 @@ def b32enc(data):
 def b32dec(string):
     pad = (8 - (len(string) % 8)) % 8
     return b32decode(string + ('=' * pad))
+
+
+def random_id():
+    return b32enc(os.urandom(15))
 
 
 LOG_SEP = '\n  '
@@ -293,6 +301,32 @@ def compute_digest(data):
             'data: cannot provide empty bytes'
         )
     return sha384(data).digest()
+
+
+def create_b32_subdirs(parentdir, name):
+    basedir = path.join(parentdir, name)
+    tmpdir = '.'.join([basedir, random_id()])
+    os.mkdir(tmpdir)
+    for n in B32NAMES:
+        os.mkdir(path.join(tmpdir, n))
+    os.rename(tmpdir, basedir)
+    return basedir
+
+
+class B32Store:
+    def __init__(self, basedir):
+        self.basedir = basedir
+
+    def init_subdirs(self):
+        create_b32_subdirs(self.basedir)
+
+    def path(self, key):
+        b32 = b32enc(key)
+        return path.join(self.basedir, b32[0:2], b32[2:])
+
+
+class ManifestStore(B32Store):
+    pass
 
 
 class SignatureStore:
