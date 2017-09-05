@@ -235,7 +235,7 @@ class TestLCD(TestCase):
         self.assertEqual(lcd.cols, 20)
         self.assertEqual(lcd.rows, 4)
         self.assertIs(type(lcd.exit), RandomExit)
-        self.assertEqual(lcd.exit.out_of, 1000)
+        self.assertEqual(lcd.exit.out_of, 10000)
         self.assertIs(lcd.exit.debug, False)
         self.assertEqual(bus._calls, [])
 
@@ -246,7 +246,7 @@ class TestLCD(TestCase):
         self.assertEqual(lcd.cols, 20)
         self.assertEqual(lcd.rows, 4)
         self.assertIs(type(lcd.exit), RandomExit)
-        self.assertEqual(lcd.exit.out_of, 1000)
+        self.assertEqual(lcd.exit.out_of, 10000)
         self.assertIs(lcd.exit.debug, True)
         self.assertEqual(bus._calls, [])
 
