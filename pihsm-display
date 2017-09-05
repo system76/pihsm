@@ -35,7 +35,7 @@ else:
     bus = MockBus()
     log.warning('Not enabling I2C display interaction')
 
-lcd = LCD(bus, config['lcd_i2c_address'], debug=config['debug'])
+lcd = LCD(bus, config['i2c_address'], debug=config['debug'])
 display_loop = DisplayLoop(lcd)
 display_loop.run_forever()
 

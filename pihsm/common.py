@@ -277,7 +277,7 @@ def load_server_config(filename='/etc/pihsm/server.json'):
 def load_display_config(filename='/etc/pihsm/display.json'):
     return load_config(filename,
         Config('i2c_bus', int, 1),
-        Config('lcd_i2c_address', int, 0x27),
+        Config('i2c_address', int, 0x27),
         Config('use_hardware', bool, False),
         CONFIG_DEBUG,
     )

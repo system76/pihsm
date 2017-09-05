@@ -64,7 +64,7 @@ class LCD:
         self.backlight = backlight
         self.cols = cols
         self.rows = rows
-        self.exit = RandomExit(1000, debug)
+        self.exit = RandomExit(10000, debug)
         self.debug = debug
 
     def write_byte(self, bits):
