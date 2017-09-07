@@ -20,7 +20,7 @@ import os
 from os import path
 
 import pihsm
-from pihsm.common import SignatureStore
+from pihsm.common import ChainStore
 from pihsm.sign import Signer
 from pihsm.ipc import open_activated_socket, PrivateServer
 from pihsm.tests.helpers import random_id
@@ -46,7 +46,7 @@ class SpecialClient:
 
 
 display_client = SpecialClient('/run/pihsm-private')
-store = SignatureStore('/var/lib/pihsm/private')
+store = ChainStore('/var/lib/pihsm/private')
 signer = Signer(store)
 display_client.make_request(signer.genesis)
 

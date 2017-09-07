@@ -303,30 +303,57 @@ def compute_digest(data):
     return sha384(data).digest()
 
 
-def create_b32_subdirs(parentdir, name):
-    basedir = path.join(parentdir, name)
+def create_b32_subdirs(basedir):
     tmpdir = '.'.join([basedir, random_id()])
     os.mkdir(tmpdir)
     for n in B32NAMES:
         os.mkdir(path.join(tmpdir, n))
+    os.mkdir(path.join(tmpdir, 'tmp'))
     os.rename(tmpdir, basedir)
-    return basedir
 
 
 class B32Store:
-    def __init__(self, basedir):
-        self.basedir = basedir
+    __slots__ = (
+        'basedir',
+    )
+    name = 'store'
 
-    def init_subdirs(self):
-        create_b32_subdirs(self.basedir)
+    def __init__(self, parentdir):
+        self.basedir = path.join(parentdir, self.name)
+        if not path.isdir(self.basedir):
+            create_b32_subdirs(self.basedir)
+        assert path.isdir(self.basedir)
 
     def path(self, key):
         b32 = b32enc(key)
         return path.join(self.basedir, b32[0:2], b32[2:])
 
+    def write(self, content):
+        filename = self.path(self.get_key(content))
+        tmpfile = path.join(self.basedir, 'tmp', random_id())
+        with open(tmpfile, 'xb', 0) as fp:
+            os.chmod(fp.fileno(), 0o444)
+            fp.write(content)
+            fp.flush()
+            os.fsync(fp.fileno())
+        os.rename(tmpfile, filename)
+        log.info('Wrote %r', filename)
+
 
 class ManifestStore(B32Store):
-    pass
+    name = 'manifest'
+
+    @staticmethod
+    def get_key(content):
+        return compute_digest(content)
+
+
+class ChainStore(B32Store):
+    name = 'chain'
+
+    @staticmethod
+    def get_key(content):
+        return get_signature(content)
 
 
 class SignatureStore:

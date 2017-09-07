@@ -423,18 +423,20 @@ class TestFunctions(TestCase):
             )
 
     def test_create_b32_subdirs(self):
+        expected = list(common.B32NAMES)
+        expected.append('tmp')
+        expected.sort()
+
         tmp = TempDir()
         name = random_id()
-        self.assertEqual(
-            common.create_b32_subdirs(tmp.dir, name),
-            tmp.join(name)
-        )
+        basedir = tmp.join(name)
+        self.assertIsNone(common.create_b32_subdirs(basedir))
         self.assertEqual(tmp.listdir(), [name])
-        self.assertEqual(tmp.listdir(name), sorted(common.B32NAMES))
+        self.assertEqual(tmp.listdir(name), expected)
 
         # Directory already exists:
         with self.assertRaises(OSError) as cm:
-            common.create_b32_subdirs(tmp.dir, name)
+            common.create_b32_subdirs(basedir)
         dirs = tmp.listdir()
         self.assertEqual(len(dirs), 2)
         self.assertEqual(dirs[0], name)
@@ -445,8 +447,37 @@ class TestFunctions(TestCase):
                 tmp.join(other), tmp.join(name)
             )
         )
-        self.assertEqual(tmp.listdir(other), sorted(common.B32NAMES))
-        self.assertEqual(tmp.listdir(name), sorted(common.B32NAMES))
+        self.assertEqual(tmp.listdir(other), expected)
+        self.assertEqual(tmp.listdir(name), expected)
+
+
+class TestB32Store(TestCase):
+    def test_init(self):
+        tmp = TempDir()
+        store = common.B32Store(tmp.dir)
+        self.assertEqual(store.basedir, tmp.join('store'))
+
+
+class TestChainStore(TestCase):
+    def test_get_key(self):
+        for size in [96, 224, 400]:
+            content = os.urandom(size)
+            self.assertEqual(common.ChainStore.get_key(content),
+                content[0:64]
+            ) 
+
+
+class TestManifestStore(TestCase):
+    def test_get_key(self):
+        self.assertEqual(common.ManifestStore.get_key(b'System76').hex(),
+            HEXDIGEST
+        )
+        for size in range(1, 401):
+            content = os.urandom(size)
+            self.assertEqual(common.ManifestStore.get_key(content),
+                hashlib.sha384(content).digest()
+            ) 
+
 
 
 class TestSignatureStore(TestCase):
