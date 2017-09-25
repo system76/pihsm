@@ -356,37 +356,8 @@ class ChainStore(B32Store):
         return get_signature(content)
 
 
-class SignatureStore:
-    def __init__(self, basedir):
-        self.basedir = basedir
-
-    def build_dirname(self, pubkey):
-        assert type(pubkey) is bytes and len(pubkey) == 32
-        return path.join(self.basedir, b32enc(pubkey))
-
-    def build_filename(self, pubkey, signature):
-        assert type(pubkey) is bytes and len(pubkey) == 32
-        assert type(signature) is bytes and len(signature) == 64
-        return path.join(self.basedir, b32enc(pubkey), b32enc(signature))
-
-    def read(self, pubkey, signature):
-        filename = self.build_filename(pubkey, signature)
-        with open(filename, 'rb', 0) as fp:
-            return fp.read(MAX_SIZE)
-
-    def write(self, signed):
-        pubkey = get_pubkey(signed)
-        dirname = self.build_dirname(pubkey)
-        try:
-            os.mkdir(dirname)
-        except FileExistsError:
-            pass
-        signature = get_signature(signed)
-        filename = self.build_filename(pubkey, signature)
-        with open(filename, 'xb', 0) as fp:
-            fp.write(signed)
-            fp.flush()
-            os.fsync(fp.fileno())
+class PackedChainStore(ChainStore):
+    name = 'packed_chain'
 
 
 class RandomExit:
