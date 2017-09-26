@@ -1,0 +1,44 @@
+#!/usr/bin/python3
+
+# pihsm: Turn your Raspberry Pi into a Hardware Security Module 
+# Copyright (C) 2017 System76, Inc.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+from os import path
+
+import pihsm
+from pihsm.provision import PiImager
+
+
+log = pihsm.configure_logging(__name__)
+
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('img',
+    help='Ubuntu Server Preinstalled Image',
+)
+parser.add_argument('dev',
+    help='MMC device',
+)
+args = parser.parse_args()
+img = path.abspath(args.img)
+dev = path.abspath(args.dev)
+
+
+pi = PiImager(img, dev)
+pi.run()
+

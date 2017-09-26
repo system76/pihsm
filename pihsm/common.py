@@ -131,6 +131,21 @@ def random_id():
     return b32enc(os.urandom(15))
 
 
+def atomic_write(mode, content, filename, tmp=None):
+    assert type(content) is bytes
+    assert mode in (0o644, 0o755, 0o444, 0o600)
+    assert path.abspath(filename) == filename
+    if tmp is None:
+        tmp = '.'.join([filename, random_id()])
+    assert path.abspath(tmp) == tmp
+    with open(tmp, 'xb', 0) as fp:
+        os.chmod(fp.fileno(), mode)
+        fp.write(content)
+        os.fsync(fp.fileno())
+    os.rename(tmp, filename)
+    log.info('Wrote %03o %r', mode, filename)
+
+
 LOG_SEP = '\n  '
 
 GENESIS_TEMPLATE = LOG_SEP.join([
