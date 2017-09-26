@@ -329,15 +329,20 @@ class B32Store:
         return path.join(self.basedir, b32[0:2], b32[2:])
 
     def write(self, content):
-        filename = self.path(self.get_key(content))
+        key = self.get_key(content)
+        filename = self.path(key)
         tmpfile = path.join(self.basedir, 'tmp', random_id())
         with open(tmpfile, 'xb', 0) as fp:
             os.chmod(fp.fileno(), 0o444)
             fp.write(content)
-            fp.flush()
             os.fsync(fp.fileno())
         os.rename(tmpfile, filename)
         log.info('Wrote %r', filename)
+        return key
+
+    def open(self, key):
+        filename = self.path(key)
+        return open(filename, 'rb', 0)
 
 
 class ManifestStore(B32Store):

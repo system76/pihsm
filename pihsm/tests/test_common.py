@@ -16,6 +16,8 @@
 
 from unittest import TestCase
 import os
+import io
+import stat
 import hashlib
 from base64 import b32encode
 import json
@@ -469,14 +471,25 @@ class TestB32Store(TestCase):
             tmp.join('store', b32[0:2], b32[2:])
         )
 
-
-class TestChainStore(TestCase):
-    def test_get_key(self):
-        for size in [96, 224, 400]:
-            content = os.urandom(size)
-            self.assertEqual(common.ChainStore.get_key(content),
-                content[0:64]
-            ) 
+    def test_open(self):
+        tmp = TempDir()
+        store = common.B32Store(tmp.dir)
+        for size in [32, 48, 64]:
+            key = os.urandom(size)
+            filename = store.path(key)
+            with self.assertRaises(FileNotFoundError) as cm:
+                store.open(key)
+            self.assertEqual(str(cm.exception),
+                '[Errno 2] No such file or directory: {!r}'.format(filename)
+            )
+            content = os.urandom(76)
+            with open(filename, 'xb', 0) as fp:
+                fp.write(content)
+            fp = store.open(key)
+            self.assertIsInstance(fp, io.FileIO)
+            self.assertEqual(fp.name, filename)
+            self.assertEqual(fp.mode, 'rb')
+            self.assertEqual(fp.read(), content)
 
 
 class TestManifestStore(TestCase):
@@ -490,4 +503,72 @@ class TestManifestStore(TestCase):
                 hashlib.sha384(content).digest()
             )
 
+    def test_write(self):
+        tmp = TempDir()
+        store = common.ManifestStore(tmp.dir)
+        self.assertEqual(tmp.listdir(), ['manifest'])
+        for size in [1, 76, 1776]:
+            content = os.urandom(size)
+            key = common.compute_digest(content)
+            filename = store.path(key)
+            with self.assertRaises(FileNotFoundError) as cm:
+                open(filename, 'rb', 0)
+            self.assertEqual(str(cm.exception),
+                '[Errno 2] No such file or directory: {!r}'.format(filename)
+            )
+
+            # .write() when file does not yet exist:
+            self.assertEqual(store.write(content), key)
+            self.assertEqual(tmp.listdir('manifest', 'tmp'), [])
+            with open(filename, 'rb', 0) as fp:
+                st = os.stat(fp.fileno())
+                self.assertEqual(stat.S_IMODE(st.st_mode), 0o444)
+                self.assertEqual(fp.read(), content)             
+
+            # .write() when file ALREADY EXISTS:
+            self.assertEqual(store.write(content), key)
+            with open(filename, 'rb', 0) as fp:
+                st = os.stat(fp.fileno())
+                self.assertEqual(stat.S_IMODE(st.st_mode), 0o444)
+                self.assertEqual(fp.read(), content)
+            self.assertEqual(tmp.listdir('manifest', 'tmp'), [])
+
+
+class TestChainStore(TestCase):
+    def test_get_key(self):
+        for size in [96, 224, 400]:
+            content = os.urandom(size)
+            self.assertEqual(common.ChainStore.get_key(content),
+                content[0:64]
+            )
+
+    def test_write(self):
+        tmp = TempDir()
+        store = common.ChainStore(tmp.dir)
+        self.assertEqual(tmp.listdir(), ['chain'])
+        for size in [96, 224, 400]:
+            content = os.urandom(size)
+            key = content[:64]
+            filename = store.path(key)
+            with self.assertRaises(FileNotFoundError) as cm:
+                open(filename, 'rb', 0)
+            self.assertEqual(str(cm.exception),
+                '[Errno 2] No such file or directory: {!r}'.format(filename)
+            )
+
+            # .write() when file does not yet exist:
+            self.assertEqual(store.write(content), key)
+            self.assertEqual(tmp.listdir('chain', 'tmp'), [])
+            with open(filename, 'rb', 0) as fp:
+                st = os.stat(fp.fileno())
+                self.assertEqual(stat.S_IMODE(st.st_mode), 0o444)
+                self.assertEqual(fp.read(), content)             
+
+            # .write() when file ALREADY EXISTS:
+            self.assertEqual(store.write(content), key)
+            with open(filename, 'rb', 0) as fp:
+                st = os.stat(fp.fileno())
+                self.assertEqual(stat.S_IMODE(st.st_mode), 0o444)
+                self.assertEqual(fp.read(), content)
+            self.assertEqual(tmp.listdir('chain', 'tmp'), [])
 
