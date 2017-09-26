@@ -36,6 +36,11 @@ RC_LOCAL = b"""#!/bin/sh -e
 echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
 sleep 1
 hwclock -s
+
+sleep 2
+add-apt-repository -ys ppa:jderose/pihsm
+apt-get update
+apt-get install -y pihsm-server
 """
 
 CONFIG_APPEND = b"""
@@ -69,19 +74,19 @@ def update_config(basedir):
         atomic_write(0o644, config + CONFIG_APPEND, filename)  
 
 
-def configure_image(basedir):
+def configure_image(basedir, pubkey=None):
     update_cmdline(basedir)
     update_config(basedir)
-    atomic_write(
-        0o600,
-        os.urandom(512),
+    atomic_write(0o600, os.urandom(512),
         path.join(basedir, 'var', 'lib', 'systemd', 'random-seed')
     )
-    atomic_write(
-        0o755,
-        RC_LOCAL,
-        path.join(basedir, 'etc', 'rc.local'),
+    atomic_write(0o755, RC_LOCAL,
+        path.join(basedir, 'etc', 'rc.local')
     )
+    if pubkey:
+        ssh = path.join(basedir, 'root', '.ssh')
+        os.mkdir(ssh, mode=0o700)
+        atomic_write(0o600, pubkey, path.join(ssh, 'authorized_keys')) 
 
 
 def open_image(filename):
@@ -151,7 +156,7 @@ class PiImager:
         umount(self.p2)
         return write_image_to_mmc(self.img, self.dev)
 
-    def configure(self):
+    def configure(self, pubkey=None):
         tmp = tempfile.mkdtemp(prefix='pihsm.')
         try:
             print(tmp)
@@ -160,13 +165,13 @@ class PiImager:
             os.mkdir(root)
             subprocess.check_call(['mount', self.p2, root])
             subprocess.check_call(['mount', self.p1, firmware])
-            configure_image(root)
+            configure_image(root, pubkey)
         finally:
             umount(self.p1)
             umount(self.p2)
             shutil.rmtree(tmp)
 
-    def run(self):
+    def run(self, pubkey=None):
         self.write_image()
-        self.configure()        
+        self.configure(pubkey)        
 

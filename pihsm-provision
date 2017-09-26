@@ -34,11 +34,18 @@ parser.add_argument('img',
 parser.add_argument('dev',
     help='MMC device',
 )
+parser.add_argument('--pub',
+    help='public key',
+)
 args = parser.parse_args()
 img = path.abspath(args.img)
 dev = path.abspath(args.dev)
+if args.pub:
+    pubkey = open(path.abspath(args.pub), 'rb', 0).read()
+else:
+    pubkey = None
 
 
 pi = PiImager(img, dev)
-pi.run()
+pi.run(pubkey)
 
