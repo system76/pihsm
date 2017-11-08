@@ -17,6 +17,7 @@
 import logging
 import os
 from os import path
+import time
 import tempfile
 import shutil
 import subprocess
@@ -131,6 +132,12 @@ def open_mmc(dev):
     return open(dev, 'wb', 0, opener=sync_opener)
 
 
+def rereadpt(dev):
+    os.sync()
+    time.sleep(1)
+    subprocess.check_call(['blockdev', '--rereadpt', dev])
+
+
 def write_image_to_mmc(img, dev):
     total = 0
     mmc = open_mmc(dev)
@@ -154,7 +161,11 @@ class PiImager:
     def write_image(self):
         umount(self.p1)
         umount(self.p2)
-        return write_image_to_mmc(self.img, self.dev)
+        rereadpt(self.dev)
+        try:
+            return write_image_to_mmc(self.img, self.dev)
+        finally:
+            rereadpt(self.dev)
 
     def configure(self, pubkey=None):
         tmp = tempfile.mkdtemp(prefix='pihsm.')
