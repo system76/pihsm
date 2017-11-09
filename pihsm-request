@@ -56,7 +56,7 @@ for j in range(1000):
             problems += 1
             log.exception('%d errors in %d requsts:', problems, count)
             time.sleep(10)
-    print('sleeping after %d', count)
+    log.info('sleeping after %d', count)
     time.sleep(2)
 
 log.info('Summary: %d requests, %d errors', count, problems)
