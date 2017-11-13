@@ -42,13 +42,22 @@ sleep 2
 add-apt-repository -ys ppa:jderose/pihsm
 apt-get update
 apt-get install -y pihsm-server
+pihsm-display-enable
 """
 
 CONFIG_APPEND = b"""
-# Written by PiHSM:
+# Added by PiHSM:
 dtoverlay=i2c-rtc,ds1307
 arm_freq=600
 """
+
+JOURNALD_CONF_APPEND = b"""
+# Added by PiHSM:
+Storage=persistent
+ForwardToSyslog=no
+ForwardToWall=no
+"""
+
 
 def update_cmdline(basedir):
     filename = path.join(basedir, 'boot', 'firmware', 'cmdline.txt')
@@ -66,18 +75,28 @@ def update_cmdline(basedir):
         atomic_write(0o644, new, filename) 
 
 
-def update_config(basedir):
-    filename = path.join(basedir, 'boot', 'firmware', 'config.txt')
-    config = open(filename, 'rb', 0).read()
-    if config.endswith(CONFIG_APPEND):
+def _atomic_append(filename, append):
+    current = open(filename, 'rb', 0).read()
+    if current.endswith(append):
         log.info('Already modified: %r', filename)
     else:
-        atomic_write(0o644, config + CONFIG_APPEND, filename)  
+        atomic_write(0o644, current + append, filename)  
+
+
+def update_config(basedir):
+    filename = path.join(basedir, 'boot', 'firmware', 'config.txt')
+    _atomic_append(filename, CONFIG_APPEND)
+
+
+def update_journald_conf(basedir):
+    filename = path.join(basedir, 'etc', 'systemd', 'journald.conf')
+    _atomic_append(filename, JOURNALD_CONF_APPEND)
 
 
 def configure_image(basedir, pubkey=None):
     update_cmdline(basedir)
     update_config(basedir)
+    update_journald_conf(basedir)
     atomic_write(0o600, os.urandom(512),
         path.join(basedir, 'var', 'lib', 'systemd', 'random-seed')
     )
@@ -158,9 +177,12 @@ class PiImager:
         self.p1 = mmc_part(dev, 1)
         self.p2 = mmc_part(dev, 2)
 
-    def write_image(self):
+    def umount_all(self):
         umount(self.p1)
         umount(self.p2)
+
+    def write_image(self):
+        self.umount_all()
         rereadpt(self.dev)
         try:
             return write_image_to_mmc(self.img, self.dev)
@@ -178,8 +200,7 @@ class PiImager:
             subprocess.check_call(['mount', self.p1, firmware])
             configure_image(root, pubkey)
         finally:
-            umount(self.p1)
-            umount(self.p2)
+            self.umount_all()
             shutil.rmtree(tmp)
 
     def run(self, pubkey=None):

@@ -25,5 +25,5 @@ from pihsm.common import enable_display_hardware
 log = pihsm.configure_logging(__name__)
 enable_display_hardware()
 
-subprocess.check_call(['systemctl', 'pihsm-display', 'restart'])
+subprocess.check_call(['systemctl', 'restart', 'pihsm-display'])
 
