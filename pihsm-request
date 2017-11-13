@@ -17,49 +17,29 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
-import os
-from os import path
-import time
+import sys
 
 import pihsm
-from pihsm.common import compute_digest, log_response
+from pihsm.common import compute_digest, b32enc, log_response
 from pihsm.ipc import ClientClient
 
 
 log = pihsm.configure_logging(__name__)
 
-
+# We'll likely add options eventually:
 parser = argparse.ArgumentParser()
-parser.add_argument('filename',
-    help='Path to manifest file to sign'
-)
 args = parser.parse_args()
-filename = path.abspath(args.filename)
 
-with open(filename, 'rb', 0) as fp:
-    content = fp.read()
-digest = compute_digest(content)
+# We need stdin, stdout opened in binary mode:
+manifest = sys.stdin.buffer.read()
+digest = compute_digest(manifest)
+log.info('--> Manifest: %s (%d bytes)', b32enc(digest), len(manifest))
 
 client = ClientClient()
 response = client.make_request(digest)
+assert len(response) == 400
+sys.stdout.buffer.write(response)
+sys.stdout.buffer.flush()
+
 log_response(response)
-
-count = 0
-problems = 0
-for j in range(1000):
-    for i in range(100):
-        count += 1
-        try:
-            response = client.make_request(os.urandom(48))
-            log_response(response)
-        except:
-            problems += 1
-            log.exception('%d errors in %d requsts:', problems, count)
-            time.sleep(10)
-    log.info('sleeping after %d', count)
-    time.sleep(2)
-
-log.info('Summary: %d requests, %d errors', count, problems)
-time.sleep(10)
-
 
