@@ -306,6 +306,13 @@ def load_display_config(filename='/etc/pihsm/display.json'):
     )
 
 
+def enable_display_hardware(filename='/etc/pihsm/display.json'):
+    config = load_display_config(filename)
+    config['use_hardware'] = True
+    content = json.dumps(config, indent=4, sort_keys=True).encode()
+    atomic_write(0o644, content, filename)
+
+
 def compute_digest(data):
     if type(data) is not bytes:
         raise TypeError(
