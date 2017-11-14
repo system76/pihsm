@@ -1,0 +1,59 @@
+#!/usr/bin/python3
+
+# pihsm: Turn your Raspberry Pi into a Hardware Security Module 
+# Copyright (C) 2017 System76, Inc.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import time
+import os
+from subprocess import Popen, PIPE
+
+import pihsm
+from pihsm.common import log_response
+
+
+log = pihsm.configure_logging(__name__)
+
+
+
+def mk_request(manifest):
+    p = Popen(['/usr/bin/pihsm-request'], stdin=PIPE, stdout=PIPE)
+    try:
+        (outdata, outerr) = p.communicate(manifest, timeout=10)
+        return outdata
+    finally:
+        p.kill()
+
+
+count = 0
+problems = 0
+for j in range(1000):
+    for i in range(100):
+        count += 1
+        try:
+            manifest = os.urandom(1776)
+            response = mk_request(manifest)
+            log_response(response)
+        except:
+            problems += 1
+            log.exception('%d errors in %d requsts:', problems, count)
+            time.sleep(10)
+    log.info('sleeping after %d', count)
+    time.sleep(2)
+
+log.info('Summary: %d requests, %d errors', count, problems)
+time.sleep(10)
+
+
