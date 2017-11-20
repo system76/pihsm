@@ -39,11 +39,11 @@ def mk_request(manifest):
 
 count = 0
 problems = 0
-for j in range(1000):
+for j in range(100):
     for i in range(100):
         count += 1
         try:
-            manifest = os.urandom(1776)
+            manifest = os.urandom(count + 1)
             response = mk_request(manifest)
             log_response(response)
         except:

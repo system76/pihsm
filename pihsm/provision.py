@@ -31,18 +31,34 @@ log = logging.getLogger(__name__)
 
 CHUNK_SIZE = 8 * 1024 * 1024
 
-RC_LOCAL = b"""#!/bin/sh -e
+RC_LOCAL_1 = b"""#!/bin/sh -e
 
 # Written by PiHSM:
+mv /etc/rc.local.2 /etc/rc.local
 echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
 sleep 1
 hwclock -s
 
 sleep 2
+ufw enable
+apt-get purge -y openssh-server
 add-apt-repository -ys ppa:jderose/pihsm
 apt-get update
 apt-get install -y pihsm-server
+truncate -s 0 /etc/netplan/50-cloud-init.yaml
+echo "HRNGDEVICE=/dev/hwrng" > /etc/default/rng-tools
+sync
 pihsm-display-enable
+sleep 3
+shutdown -h now
+"""
+
+RC_LOCAL_2 = b"""#!/bin/sh -e
+
+# Written by PiHSM:
+echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
+sleep 1
+hwclock -s
 """
 
 CONFIG_APPEND = b"""
@@ -100,8 +116,11 @@ def configure_image(basedir, pubkey=None):
     atomic_write(0o600, os.urandom(512),
         path.join(basedir, 'var', 'lib', 'systemd', 'random-seed')
     )
-    atomic_write(0o755, RC_LOCAL,
+    atomic_write(0o755, RC_LOCAL_1,
         path.join(basedir, 'etc', 'rc.local')
+    )
+    atomic_write(0o755, RC_LOCAL_2,
+        path.join(basedir, 'etc', 'rc.local.2')
     )
     if pubkey:
         ssh = path.join(basedir, 'root', '.ssh')
