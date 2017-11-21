@@ -40,6 +40,8 @@ sleep 1
 hwclock -s
 
 sleep 2
+deluser ubuntu --remove-home
+systemctl disable getty@.service
 ufw enable
 apt-get purge -y openssh-server
 add-apt-repository -ys ppa:jderose/pihsm
@@ -72,6 +74,12 @@ JOURNALD_CONF_APPEND = b"""
 Storage=persistent
 ForwardToSyslog=no
 ForwardToWall=no
+"""
+
+RESOLVED_CONF_APPEND = b"""
+# Added by PiHSM:
+LLMNR=no
+MulticastDNS=no
 """
 
 
@@ -109,10 +117,16 @@ def update_journald_conf(basedir):
     _atomic_append(filename, JOURNALD_CONF_APPEND)
 
 
+def update_resolved_conf(basedir):
+    filename = path.join(basedir, 'etc', 'systemd', 'resolved.conf')
+    _atomic_append(filename, RESOLVED_CONF_APPEND)
+
+
 def configure_image(basedir, pubkey=None):
     update_cmdline(basedir)
     update_config(basedir)
     update_journald_conf(basedir)
+    update_resolved_conf(basedir)
     atomic_write(0o600, os.urandom(512),
         path.join(basedir, 'var', 'lib', 'systemd', 'random-seed')
     )
@@ -204,7 +218,10 @@ class PiImager:
         self.umount_all()
         rereadpt(self.dev)
         try:
-            return write_image_to_mmc(self.img, self.dev)
+            total = write_image_to_mmc(self.img, self.dev)
+            os.sync()
+            time.sleep(1)
+            return total
         finally:
             rereadpt(self.dev)
 
@@ -218,6 +235,7 @@ class PiImager:
             subprocess.check_call(['mount', self.p2, root])
             subprocess.check_call(['mount', self.p1, firmware])
             configure_image(root, pubkey)
+            os.sync()
         finally:
             self.umount_all()
             shutil.rmtree(tmp)
