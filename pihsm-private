@@ -21,12 +21,16 @@ from os import path
 
 import pihsm
 from pihsm.common import ChainStore
-from pihsm.sign import Signer
+from pihsm.sign import Signer, wait_for_entropy_avail
 from pihsm.ipc import open_activated_socket, PrivateServer
 from pihsm.tests.helpers import random_id
 
+
 log = pihsm.configure_logging(__name__)
 
+# Wait till at least 3000 bits of entropy are avaliable before generating the
+# Ed25519 signing key:
+wait_for_entropy_avail(target=3000)
 
 
 class SpecialClient:

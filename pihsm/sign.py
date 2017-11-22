@@ -45,6 +45,25 @@ def get_entropy_avail(filename='/proc/sys/kernel/random/entropy_avail'):
         return int(fp.read(20))
 
 
+def wait_for_entropy_avail(target=3000, filename='/proc/sys/kernel/random/entropy_avail'):
+    assert isinstance(target, int) and target >= 1000
+    delay = 5
+    for i in range(100):
+        avail = get_entropy_avail(filename)
+        if avail >= target:
+            log.info(
+                '%d bits of entropy available >= %d requested', avail, target
+            )
+            return avail
+        else:
+            log.info(
+                '%d/%d bits of entropy available after %d checks, %d seconds',
+                avail, target, i, i * delay
+            )
+            time.sleep(delay)
+    raise Exception("Not enough entropy available!")
+
+
 def build_signing_form(public, previous, counter, timestamp, message):
     assert type(public) is bytes and len(public) == 32
     assert type(previous) is bytes and len(previous) == 64

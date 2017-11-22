@@ -1,6 +1,6 @@
 [Unit]
 Description=PiHSM Private Key Signing Service
-After=network.target pihsm-private.socket
+After=pihsm-private.socket
 Requires=pihsm-private.socket
 
 [Service]
