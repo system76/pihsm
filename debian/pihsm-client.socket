@@ -1,5 +1,5 @@
 [Unit]
-Description=PiHSM Display Socket
+Description=PiHSM Client Socket
 PartOf=pihsm-client.service
 
 [Socket]

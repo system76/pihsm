@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 
 CHUNK_SIZE = 8 * 1024 * 1024
 
-RC_LOCAL_1 = b"""#!/bin/sh -e
+RC_LOCAL_1 = b"""#!/bin/sh -ex
 
 # Written by PiHSM:
 mv /etc/rc.local.2 /etc/rc.local
@@ -40,22 +40,43 @@ sleep 1
 hwclock -s
 
 sleep 2
-deluser ubuntu --remove-home
-systemctl disable getty@.service
 ufw enable
+sleep 10
 apt-get purge -y openssh-server
 add-apt-repository -ys ppa:jderose/pihsm
 apt-get update
 apt-get install -y pihsm-server
-truncate -s 0 /etc/netplan/50-cloud-init.yaml
 echo "HRNGDEVICE=/dev/hwrng" > /etc/default/rng-tools
+
+# pollinate snapd mdadm
+apt-get purge -y cloud-init cloud-guest-utils
+deluser ubuntu --remove-home
+
+systemctl disable apt-daily-upgrade.timer
+systemctl disable apt-daily.timer
+systemctl disable getty@.service
+systemctl disable snapd.socket
+systemctl disable snapd.service
+systemctl disable snapd.refresh.timer
+systemctl disable snapd.snap-repair.timer
+
+systemctl disable lxd.socket
+systemctl disable lxd-containers.service
+
+systemctl disable ureadahead.service
+
+systemctl mask getty-static.service
+systemctl mask systemd-rfkill.service
+systemctl mask systemd-rfkill.socket
+
 sync
+sleep 3
 pihsm-display-enable
 sleep 3
 shutdown -h now
 """
 
-RC_LOCAL_2 = b"""#!/bin/sh -e
+RC_LOCAL_2 = b"""#!/bin/sh -ex
 
 # Written by PiHSM:
 echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
