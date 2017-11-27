@@ -1,5 +1,5 @@
 [Unit]
-Description=pihsm server
+Description=PiHSM Server Service
 
 [Service]
 User=pihsm-server

@@ -1,5 +1,5 @@
 [Unit]
-Description=PiHSM Private Key Signing Service
+Description=PiHSM Private Service
 After=pihsm-private.socket
 Requires=pihsm-private.socket
 
