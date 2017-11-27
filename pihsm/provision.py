@@ -34,10 +34,8 @@ CHUNK_SIZE = 8 * 1024 * 1024
 RC_LOCAL_1 = b"""#!/bin/sh -ex
 
 # Written by PiHSM:
+/etc/rc.local.2
 mv /etc/rc.local.2 /etc/rc.local
-echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
-sleep 1
-hwclock -s
 
 sleep 2
 ufw enable
@@ -62,16 +60,24 @@ systemctl disable snapd.snap-repair.timer
 
 systemctl disable lxd.socket
 systemctl disable lxd-containers.service
+systemctl disable lxcfs.service
 
 systemctl disable ureadahead.service
+
+systemctl disable lvm2-lvmetad.service
+systemctl disable lvm2-lvmetad.socket
+
+systemctl disable open-iscsi.service
+systemctl disable iscsid.service
 
 systemctl mask getty-static.service
 systemctl mask systemd-rfkill.service
 systemctl mask systemd-rfkill.socket
+systemctl disable systemd-networkd.service
 
-sync
 sleep 3
 pihsm-display-enable
+sync
 sleep 3
 shutdown -h now
 """
@@ -79,8 +85,9 @@ shutdown -h now
 RC_LOCAL_2 = b"""#!/bin/sh -ex
 
 # Written by PiHSM:
-echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
 sleep 1
+echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
+sleep 2
 hwclock -s
 """
 
@@ -143,7 +150,7 @@ def update_resolved_conf(basedir):
     _atomic_append(filename, RESOLVED_CONF_APPEND)
 
 
-def configure_image(basedir, pubkey=None):
+def configure_image(basedir):
     update_cmdline(basedir)
     update_config(basedir)
     update_journald_conf(basedir)
@@ -157,10 +164,6 @@ def configure_image(basedir, pubkey=None):
     atomic_write(0o755, RC_LOCAL_2,
         path.join(basedir, 'etc', 'rc.local.2')
     )
-    if pubkey:
-        ssh = path.join(basedir, 'root', '.ssh')
-        os.mkdir(ssh, mode=0o700)
-        atomic_write(0o600, pubkey, path.join(ssh, 'authorized_keys')) 
 
 
 def open_image(filename):
@@ -246,7 +249,7 @@ class PiImager:
         finally:
             rereadpt(self.dev)
 
-    def configure(self, pubkey=None):
+    def configure(self):
         tmp = tempfile.mkdtemp(prefix='pihsm.')
         try:
             print(tmp)
@@ -255,13 +258,13 @@ class PiImager:
             os.mkdir(root)
             subprocess.check_call(['mount', self.p2, root])
             subprocess.check_call(['mount', self.p1, firmware])
-            configure_image(root, pubkey)
+            configure_image(root)
             os.sync()
         finally:
             self.umount_all()
             shutil.rmtree(tmp)
 
-    def run(self, pubkey=None):
+    def run(self):
         self.write_image()
-        self.configure(pubkey)        
+        self.configure()        
 
