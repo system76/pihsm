@@ -151,6 +151,22 @@ def update_resolved_conf(basedir):
     _atomic_append(filename, RESOLVED_CONF_APPEND)
 
 
+def _disable_service(basedir, wanted_by, service):
+    filename = path.join(basedir, 'etc', 'systemd', 'system', wanted_by, service)
+    assert path.islink(filename)
+    os.remove(filename)
+    log.info('Removed symlink %r', filename)
+
+
+def disable_services(basedir):
+    pairs = [
+        ('default.target.wants', 'ureadahead.service'),
+        ('multi-user.target.wants', 'unattended-upgrades.service'),
+    ]
+    for (wanted_by, service) in pairs:
+        _disable_service(basedir, wanted_by, service)
+
+
 def configure_image(basedir):
     update_cmdline(basedir)
     update_config(basedir)
@@ -165,6 +181,7 @@ def configure_image(basedir):
     atomic_write(0o755, RC_LOCAL_2,
         path.join(basedir, 'etc', 'rc.local.2')
     )
+    disable_services(basedir)
 
 
 def open_image(filename):
@@ -253,10 +270,10 @@ class PiImager:
     def configure(self):
         tmp = tempfile.mkdtemp(prefix='pihsm.')
         try:
-            print(tmp)
+            log.info('Working directory: %r', tmp)
             root = path.join(tmp, 'root')
-            firmware = path.join(root, 'boot', 'firmware')
             os.mkdir(root)
+            firmware = path.join(root, 'boot', 'firmware')
             subprocess.check_call(['mount', self.p2, root])
             subprocess.check_call(['mount', self.p1, firmware])
             configure_image(root)
@@ -264,6 +281,7 @@ class PiImager:
         finally:
             self.umount_all()
             shutil.rmtree(tmp)
+            log.info('Removed directory %r', tmp)
 
     def run(self):
         self.write_image()
