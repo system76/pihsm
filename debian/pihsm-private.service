@@ -1,7 +1,7 @@
 [Unit]
 Description=PiHSM Private Service
-After=pihsm-private.socket
-Requires=pihsm-private.socket
+After=pihsm-private.socket rng-tools.service rc-local.service
+Requires=pihsm-private.socket rng-tools.service rc-local.service
 
 [Service]
 RuntimeDirectory=pihsm-private

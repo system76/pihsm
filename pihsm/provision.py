@@ -87,8 +87,8 @@ RC_LOCAL_2 = b"""#!/bin/sh -ex
 # Written by PiHSM:
 sleep 1
 echo ds1307 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
-sleep 2
-hwclock -s
+sleep 5
+hwclock -s --debug
 """
 
 CONFIG_APPEND = b"""
@@ -102,6 +102,7 @@ JOURNALD_CONF_APPEND = b"""
 Storage=persistent
 ForwardToSyslog=no
 ForwardToWall=no
+ForwardToConsole=yes
 """
 
 RESOLVED_CONF_APPEND = b"""

@@ -1,5 +1,7 @@
 [Unit]
 Description=PiHSM Server Service
+After=pihsm-private.service
+Requires=pihsm-private.service
 
 [Service]
 User=pihsm-server
