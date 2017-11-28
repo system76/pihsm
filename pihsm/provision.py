@@ -53,6 +53,7 @@ deluser ubuntu --remove-home
 systemctl disable apt-daily-upgrade.timer
 systemctl disable apt-daily.timer
 systemctl disable getty@.service
+systemctl mask getty@.service
 systemctl disable snapd.socket
 systemctl disable snapd.service
 systemctl disable snapd.refresh.timer
@@ -73,7 +74,16 @@ systemctl disable iscsid.service
 systemctl mask getty-static.service
 systemctl mask systemd-rfkill.service
 systemctl mask systemd-rfkill.socket
+
 systemctl disable systemd-networkd.service
+systemctl mask systemd-networkd.service
+
+systemctl disable systemd-resolved.service
+systemctl mask systemd-resolved.service
+
+systemctl mask acpid.path
+systemctl mask acpid.service
+systemctl mask acpid.socket
 
 sleep 3
 pihsm-display-enable
@@ -151,6 +161,14 @@ def update_resolved_conf(basedir):
     _atomic_append(filename, RESOLVED_CONF_APPEND)
 
 
+def _mask_service(basedir, service):
+    target = '/dev/null'
+    link = path.join(basedir, 'etc', 'systemd', 'system', service)
+    assert not path.exists(link)
+    os.symlink(target, link)
+    log.info('Symlinked %r --> %r', link, target)
+
+
 def _disable_service(basedir, wanted_by, service):
     filename = path.join(basedir, 'etc', 'systemd', 'system', wanted_by, service)
     assert path.islink(filename)
@@ -165,6 +183,7 @@ def disable_services(basedir):
     ]
     for (wanted_by, service) in pairs:
         _disable_service(basedir, wanted_by, service)
+        _mask_service(basedir, service)
 
 
 def configure_image(basedir):
