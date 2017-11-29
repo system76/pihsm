@@ -19,13 +19,14 @@
 import time
 import os
 from subprocess import Popen, PIPE
+from random import SystemRandom
 
 import pihsm
 from pihsm.common import log_response
 
 
 log = pihsm.configure_logging(__name__)
-
+random = SystemRandom()
 
 
 def mk_request(manifest):
@@ -39,8 +40,9 @@ def mk_request(manifest):
 
 count = 0
 problems = 0
-for j in range(100):
-    for i in range(100):
+for i in range(100):
+    loop = random.randint(1, 100)
+    for j in range(loop):
         count += 1
         try:
             manifest = os.urandom(count + 1)
@@ -50,8 +52,9 @@ for j in range(100):
             problems += 1
             log.exception('%d errors in %d requsts:', problems, count)
             time.sleep(10)
-    log.info('sleeping after %d', count)
-    time.sleep(2)
+    sleep = random.random() * 10
+    log.info('sleeping for %.1f after %d/%d', sleep, loop, count)
+    time.sleep(sleep)
 
 log.info('Summary: %d requests, %d errors', count, problems)
 time.sleep(10)
