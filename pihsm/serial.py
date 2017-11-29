@@ -52,6 +52,7 @@ def read_serial(ttl, size):
         return None
     if len(msg) != size:
         log.warning('serial read: expected %d bytes; got %d', size, len(msg))
+        ttl.reset_input_buffer()
         return None
     if isvalid(msg):
         return msg

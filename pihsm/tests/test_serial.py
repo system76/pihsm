@@ -45,6 +45,9 @@ class MockSerial:
     def flush(self):
         self._calls.append('flush')
 
+    def reset_input_buffer(self):
+        self._calls.append('reset_input_buffer')
+
 
 class MockSerialFactory:
     def __init__(self, port, *returns):
@@ -93,7 +96,9 @@ class TestFunctions(TestCase):
                 msg = os.urandom(size + d)
                 ttl = MockSerial(msg)
                 self.assertIsNone(serial.read_serial(ttl, size))
-                self.assertEqual(ttl._calls, [('read', size)])
+                self.assertEqual(ttl._calls,
+                    [('read', size), 'reset_input_buffer']
+                )
 
             # Signature isn't good (should return None):
             msg = os.urandom(size)
