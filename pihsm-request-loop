@@ -40,7 +40,7 @@ def mk_request(manifest):
 
 count = 0
 problems = 0
-for i in range(100):
+for i in range(1000):
     loop = random.randint(1, 100)
     for j in range(loop):
         count += 1

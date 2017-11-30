@@ -16,6 +16,7 @@
 
 
 import logging
+import time
 
 from .common import (
     SERIAL_BAUDRATE,
@@ -52,6 +53,7 @@ def read_serial(ttl, size):
         return None
     if len(msg) != size:
         log.warning('serial read: expected %d bytes; got %d', size, len(msg))
+        time.sleep(SERIAL_TIMEOUT)
         ttl.reset_input_buffer()
         return None
     if isvalid(msg):
@@ -81,8 +83,8 @@ class SerialServer(BaseSerial):
 
     def serve_forever(self):
         try:
-            ttl = self.open_serial()
             while True:
+                ttl = self.open_serial()
                 request = read_serial(ttl, REQUEST)
                 self.exit.tempt_fate()
                 if request is not None:
