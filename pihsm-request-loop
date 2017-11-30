@@ -41,7 +41,7 @@ def mk_request(manifest):
 count = 0
 problems = 0
 for i in range(1000):
-    loop = random.randint(1, 100)
+    loop = random.randint(1, 50)
     for j in range(loop):
         count += 1
         try:
@@ -52,8 +52,8 @@ for i in range(1000):
             problems += 1
             log.exception('%d errors in %d requsts:', problems, count)
             time.sleep(10)
-    sleep = random.random() * 10
-    log.info('sleeping for %.1f after %d/%d', sleep, loop, count)
+    sleep = random.random() * 20
+    log.info('sleeping for %.1f after %d requests [i=%d, j=%d]', sleep, count, i, j)
     time.sleep(sleep)
 
 log.info('Summary: %d requests, %d errors', count, problems)
