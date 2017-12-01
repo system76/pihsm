@@ -40,7 +40,7 @@
 import time
 import logging
 
-from .common import b32enc, log_genesis, log_response, RESPONSE, RandomExit
+from .common import b32enc, log_genesis, log_response, RESPONSE
 from .verify import get_signature, get_pubkey, get_counter
 from .sign import get_entropy_avail
 
@@ -58,14 +58,12 @@ LCD_CMD = 0 # Mode - Sending command
 
 
 class LCD:
-    def __init__(self, bus, addr=0x27, backlight=0x08, cols=20, rows=4, debug=False):
+    def __init__(self, bus, addr=0x27, backlight=0x08, cols=20, rows=4):
         self.bus = bus
         self.addr = addr
         self.backlight = backlight
         self.cols = cols
         self.rows = rows
-        self.exit = RandomExit(10000, debug)
-        self.debug = debug
 
     def write_byte(self, bits):
         self.bus.write_byte(self.addr, bits)
@@ -78,7 +76,6 @@ class LCD:
         time.sleep(E_DELAY)
 
     def lcd_byte(self, bits, mode=LCD_CMD):
-        self.exit.tempt_fate()
         assert mode in (LCD_CMD, LCD_CHR)
         high = mode | (bits & 0xF0) | self.backlight
         low = mode | ((bits<<4) & 0xF0) | self.backlight
@@ -105,20 +102,17 @@ class LCD:
         for bits in data:
             self.lcd_byte(bits, LCD_CHR)
 
-    def lcd_text_lines(self, *lines, msg='lines[%d]: %r'):
+    def lcd_text_lines(self, *lines):
         self.lcd_clear()
         for (i, text) in enumerate(lines):
             if callable(text):
                 text = text()
-            log.debug(msg, i, text)
             self.lcd_line(text.encode(), i)
 
     def lcd_screens(self, *screens):
-        log.debug('-' * 37)
-        for (i, lines) in enumerate(screens):
-            self.lcd_text_lines(*lines, msg='screens[{}][%d]: %r'.format(i))
+        for lines in screens:
+            self.lcd_text_lines(*lines)
             time.sleep(5)
-        log.debug('-' * 37)
 
 
 def _mk_u64_line(u64):

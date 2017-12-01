@@ -29,7 +29,6 @@ from .common import (
     log_request,
     log_response,
     get_message,
-    RandomExit,
 )
 from .verify import isvalid, get_pubkey
 
@@ -76,17 +75,15 @@ class BaseSerial:
 class SerialServer(BaseSerial):
     __slots__ = ('private_client', 'exit')
 
-    def __init__(self, private_client, port, SerialClass=None, debug=False):
+    def __init__(self, private_client, port, SerialClass=None):
         super().__init__(port, SerialClass)
         self.private_client = private_client
-        self.exit = RandomExit(debug=debug)
 
     def serve_forever(self):
         try:
             while True:
                 ttl = self.open_serial()
                 request = read_serial(ttl, REQUEST)
-                self.exit.tempt_fate()
                 if request is not None:
                     response = self.handle_request(request)
                     ttl.write(response)

@@ -21,14 +21,12 @@ from base64 import b32encode, b32decode
 import json
 import os
 from os import path
-from random import SystemRandom
 
 
 Signed = namedtuple('Signed', 'signature pubkey previous counter timestamp message')
 Config = namedtuple('Config', 'key types default')
 
 log = logging.getLogger(__name__)
-random = SystemRandom()
 
 SERIAL_BAUDRATE = 57600
 SERIAL_TIMEOUT = 2
@@ -385,25 +383,4 @@ class ChainStore(B32Store):
 
 class PackedChainStore(ChainStore):
     name = 'packed_chain'
-
-
-class RandomExit:
-    __slots__ = ('out_of', 'count', 'debug')
-
-    def __init__(self, out_of=1000, debug=True):
-        assert type(out_of) is int and out_of > 0
-        self.out_of = out_of
-        self.debug = debug
-        self.count = 0
-
-    def tempt_fate(self):
-        if self.debug is True:
-            self.count += 1
-            if random.randrange(0, self.out_of) == 0:
-                status = random.randrange(0, 2)
-                log.error(
-                    '%d attemps, 1/%d failure probability: exiting with status %d',
-                    self.count, self.out_of, status
-                )
-                raise SystemExit(status)
 
